@@ -2,7 +2,7 @@
 .SUFFIXES: # remove default suffix rules
 
 CC = g++ # fortran compiler
-CFLAGS = -Wall -Weffc++ -Wextra -Wconversion -Wsign-conversion -Werror -ggdb
+CFLAGS = -Wall -Weffc++ -Wextra -Werror -ggdb -Wno-narrowing
 CFLAGS_RELEASE = -O3 -DNDEBUG
 
 MAIN = Day4.cpp
