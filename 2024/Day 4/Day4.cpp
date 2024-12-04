@@ -29,7 +29,7 @@ int main()
 
 	int xmas {}, x_mas{};
 	xmas = numXMAS(v);
-	x_mas = numX_MAX(v);
+	x_mas = numX_MAS(v);
 
 	std::cout << "Number of XMAS in data set: " << xmas << "\n";
 	std::cout << "Number of X-MAS in data set: " << x_mas << "\n";
@@ -37,28 +37,52 @@ int main()
 	return 0;
 }
 
+int numX_MAS(std::vector<std::vector<char>> v)
+{
+	int xmas {0};
+	int num_rows {v.size()}, num_cols {v[0].size()};
+	for (int ii{1}; ii<num_rows-1; ++ii) {
+		for (int jj{1}; jj<num_cols-1; ++jj) {
+			if (v[ii][jj]=='A') {
+				std::vector<int> iDir {1,-1,1,-1}, jDir {1,-1,-1,1};
+				std::size_t dir {0};
+
+				// dir0 is M or S, dir1 is opposite
+				// dir2 is M or S, dir3 is opposite
+				if ( v[ii+iDir[dir]][jj+jDir[dir]] == 'M' || v[ii+iDir[dir]][jj+jDir[dir]] == 'S' ) {
+					dir = 1;
+					if ( (v[ii+iDir[dir]][jj+jDir[dir]] == 'M' || v[ii+iDir[dir]][jj+jDir[dir]] == 'S') && (v[ii+iDir[dir]][jj+jDir[dir]] != v[ii+iDir[dir-1]][jj+jDir[dir-1]]) ) {
+						dir = 2;
+						if ( v[ii+iDir[dir]][jj+jDir[dir]] == 'M' || v[ii+iDir[dir]][jj+jDir[dir]] == 'S' ) {
+							dir = 3;
+							if ( (v[ii+iDir[dir]][jj+jDir[dir]] == 'M' || v[ii+iDir[dir]][jj+jDir[dir]] == 'S') && (v[ii+iDir[dir]][jj+jDir[dir]] != v[ii+iDir[dir-1]][jj+jDir[dir-1]]) ) {
+								xmas += 1;
+							}
+						}
+					}
+				}
+
+			}
+		}
+	}
+
+	return xmas;
+}
+
 int numXMAS(std::vector<std::vector<char>> v)
 {
 	int xmas {0};
 	int num_rows {v.size()}, num_cols {v[0].size()};
-// std::cout << "before ";
-// std::cout << num_rows << " " << num_cols << "\n";
 	for (int ii{0}; ii<num_rows; ++ii) {
-// std::cout << "in 1 ";
 		for (int jj{0}; jj<num_cols; ++jj) {
-// std::cout << "in 2 " << "\n";
 			if (v[ii][jj]=='X') {
-// std::cout << ii << " " << jj << "\n";
 				std::size_t numberDirections {8};
 				std::vector<int> iDir {1,1,0,-1,-1,-1,0,1}, jDir {0,1,1,1,0,-1,-1,-1};
 				for (std::size_t dir{0}; dir<numberDirections; ++dir) {
 					if (inBounds(ii+3*iDir[dir],0,num_rows-1) && inBounds(jj+3*jDir[dir],0,num_cols-1)) {
 						if (v[ii+iDir[dir]][jj+jDir[dir]] == 'M') {
-// std::cout << ii+iDir[dir] << " " << jj+jDir[dir] << "\n";
 							if (v[ii+2*iDir[dir]][jj+2*jDir[dir]] == 'A') {
-// std::cout << ii+2*iDir[dir] << " " << jj+2*jDir[dir] << "\n";
 								if (v[ii+3*iDir[dir]][jj+3*jDir[dir]] == 'S') {
-// std::cout << ii+3*iDir[dir] << " " << jj+3*jDir[dir] << "\n";
 									xmas += 1;
 								}
 							}
