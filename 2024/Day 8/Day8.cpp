@@ -7,6 +7,7 @@
 #include <set>
 #include <utility>
 #include <chrono>
+#include <numeric>
 
 int main()
 {
@@ -86,12 +87,40 @@ bool inBounds(int val, int sz) {
 void an1(int x1, int y1, int x2, int y2, int dx, int dy, int szx, int szy, std::set<std::pair<int,int>>& ans) {
 	if (inBounds(x1-dx,szx) && inBounds(y1-dy,szy)) ans.insert(std::make_pair(x1-dx,y1-dy));
 	if (inBounds(x2+dx,szx) && inBounds(y2+dy,szy)) ans.insert(std::make_pair(x2+dx,y2+dy));
+	int commonDenom {std::gcd(dx,dy)};
+	if (commonDenom%3==0) {
+		dx /= 3;
+		dy /= 3;
+		// in between stepping
+		int anx{}, any{};
+		anx = x1;
+		any = y1;
+		while ((anx!=x2 && any!=y2)) {
+			ans.insert(std::make_pair(anx, any));
+			anx += dx;
+			any += dy;
+		}
+	}
 }
 
 void an2(int x1, int y1, int x2, int y2, int dx, int dy, int szx, int szy, std::set<std::pair<int,int>>& ans) {
 	int anx {}, any{};
-	anx = x2;
-	any = y2;
+	int commonDenom {std::gcd(dx,dy)};
+	if (commonDenom!=1) {
+		dx /= commonDenom;
+		dy /= commonDenom;
+		// in between stepping
+		anx = x1;
+		any = y1;
+		while ((anx!=x2 && any!=y2)) {
+			ans.insert(std::make_pair(anx, any));
+			anx += dx;
+			any += dy;
+		}
+	} else {
+		anx = x2;
+		any = y2;
+	}
 	// forward stepping
 	while (inBounds(anx, szx) && inBounds(any,szy)) {
 		ans.insert(std::make_pair(anx, any));
@@ -106,6 +135,7 @@ void an2(int x1, int y1, int x2, int y2, int dx, int dy, int szx, int szy, std::
 		anx -= dx;
 		any -= dy;
 	}
+
 } 
 
 void getInfo(int& x1, int& y1, int& x2, int& y2, int& dx, int& dy, std::pair<int,int> loc1, std::pair<int,int> loc2) {
