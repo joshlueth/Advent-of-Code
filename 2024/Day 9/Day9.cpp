@@ -49,7 +49,7 @@ int main()
   std::size_t ff {0}, fb {files.size()-1}, fs {0}; // filesforward, filesbackward, and freespace
   int fID {}, bID{}, fNum{}, fsNum{}, bTrack{};
   bTrack = std::stoi(std::string(1,files[fb]));
-  while (ff<fb) {
+  while (ff<=fb) {
   // current file
     fID = int(ff);
     fNum = std::stoi(std::string(1,files[ff]));
@@ -64,7 +64,7 @@ int main()
     for (int ii{0}; ii<fsNum; ++ii) {
       if (bTrack==0) {
         --fb;
-        if (ff==fb) break;
+        if (ff>=fb) break;
         --bID;
         bTrack = std::stoi(std::string(1,files[fb]));;
       }
@@ -80,10 +80,12 @@ int main()
 
   long long sum1{0};
   for (std::size_t it{0}; it<compacted.size(); ++it) {
-    sum1 += int(it)*compacted[it];
+    long long itll = static_cast<long long>(it);
+    sum1 += itll*compacted[it];
   }
+std::cout << sum1;
+  return 0;
 	auto t3 {std::chrono::high_resolution_clock::now()};
-
 // for each file, in reverse order, try to see if it fits in a file in forward order
 // keep track of the key value through a std::vector<int>
 // and after each attempt, adjust the freespace and keys
@@ -126,7 +128,8 @@ int main()
 
   long long sum2{0};
   for (std::size_t it{0}; it<transfer.size(); ++it) {
-    sum2 += int(it)*transfer[it];
+    long long itll = static_cast<long long>(it);
+    sum2 += itll*transfer[it];
   }
   auto t4 {std::chrono::high_resolution_clock::now()};
 
