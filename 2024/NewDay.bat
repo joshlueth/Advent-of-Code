@@ -74,9 +74,9 @@ cd "%~dp0!nxtDay_strsp!"
 
 ren !temp_str!.* !nxtDay_str!.*
 
-@REM REM file modification - specifically change the MAIN variable in Makefile, header in .cpp
-call powershell -ExecutionPolicy Bypass -File "%~dp0find_replace_aocTmplt.ps1" -file_mod "%~dp0!nxtDay_str_sp!\Makefile" -replace_txt Day0_template -with_txt !nxtDay_str!
-call powershell -ExecutionPolicy Bypass -File "%~dp0find_replace_aocTmplt.ps1" -file_mod "%~dp0!nxtDay_str_sp!\!nxtDay_str_cpp!" -replace_txt Day0_template -with_txt !nxtDay_str!
+REM file modification - specifically change the MAIN variable in Makefile, header in .cpp
+call powershell -ExecutionPolicy Bypass -File "%~dp0find_replace_aocTmplt.ps1" -file_mod "%~dp0!nxtDay_strsp!\Makefile" -replace_txt Day0_template -with_txt !nxtDay_str!
+call powershell -ExecutionPolicy Bypass -File "%~dp0find_replace_aocTmplt.ps1" -file_mod "%~dp0!nxtDay_strsp!\!nxtDay_str_cpp!" -replace_txt Day0_template -with_txt !nxtDay_str!
 
 REM create sample.txt
 copy NUL sample.txt >> NUL
