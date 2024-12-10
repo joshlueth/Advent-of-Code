@@ -38,7 +38,7 @@ int main()
   numT = map;
   setArray_n1(numT);
 
-// for each 0, call recursive findTrail
+// for each 0, call recursive findPeaks, findTrails
   int peaks{0}, uniqueTrails{0};
   for (std::size_t i{0}; i<map.size(); ++i) {
     for (std::size_t j{0}; j<map.size(); ++j) {
@@ -66,6 +66,7 @@ int main()
 // }
 
 	std::cout << "Program took, in microseconds:" << "\n";
+	std::cout << "  Total Time:      " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t1).count() << "\n";
 	std::cout << "  File Reading:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
   std::cout << "  Problem Solving: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 
