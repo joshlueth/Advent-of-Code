@@ -5,7 +5,7 @@ CC = g++ # fortran compiler
 CFLAGS = -Wall -Weffc++ -Wextra -Werror -ggdb -Wconversion -Wsign-conversion #-Wno-narrowing  (-Wno-narrowing #)
 CFLAGS_RELEASE = -O3 -DNDEBUG
 
-MAIN = Day0_template.cpp
+MAIN = Day10.cpp
 EXECUTABLE = aoc.exe
 
 # should cause clean to be system-agnostic
