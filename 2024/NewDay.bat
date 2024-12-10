@@ -96,15 +96,17 @@ if "%TERM_PROGRAM%"=="vscode" (
 
 REM add git commit, depending on command line input
 :git
-if defined gitparam (
-  git diff --cached --quiet
-  if !ERRORLEVEL! NEQ 0 (
-    git add . >> "%~dp0temp.log"
-    git commit -m "!nxtDay_strsp! Scaffolding" >> "%~dp0temp.log"
-  ) else (
-    echo Did not add or commit to git: There are currently staged changes.
-  )
+if not defined gitparam (
+  goto end_git
 )
+git diff --cached --quiet --exit-code
+if %ERRORLEVEL%==0 (
+  git add . >> "%~dp0temp.log"
+  git commit -m "!nxtDay_strsp! Scaffolding" >> "%~dp0temp.log"
+) else (
+  echo Did not add or commit to git: There are currently staged changes.
+)
+:end_git
 
 REM change directories to the desired directory
 endlocal & ( set nxtDay_strsp=%nxtDay_strsp% )
@@ -112,7 +114,4 @@ cd "%~dp0%nxtDay_strsp%"
 
 REM Exit the script
 exit /b
-  
-REM del /q .\*
-
 

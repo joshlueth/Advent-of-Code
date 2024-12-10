@@ -8,7 +8,7 @@ int main()
 {
 	auto t1 {std::chrono::high_resolution_clock::now()};
 
-	std::string fileName {"input.txt"};
+	std::string fileName {"sample.txt"};
 
 	std::ifstream inputFile {fileName};
 	if (!inputFile)
@@ -30,7 +30,7 @@ int main()
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
 	std::cout << "Program took, in microseconds:" << "\n";
-	std::cout << "  Total Time" << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
+	std::cout << "  Total Time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
 
 	return 0;
 }
