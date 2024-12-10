@@ -76,38 +76,6 @@ ren !temp_str!.* !nxtDay_str!.*
 
 @REM REM file modification - specifically change the MAIN variable in Makefile, header in .cpp
 
-@REM set ReplaceLine=1
-@REM set ReplaceFile=nxtDay_str_cpp
-@REM set TempFile=tmp.txt
-@REM if exist %TempFile% del %TempFile%
-@REM set /A Cnt=1
-@REM for /F "tokens" %%a in (%ReplaceFile%) do (
-@REM    echo.%%a>> "%TempFile%"
-@REM    set /A Cnt+=1
-@REM    if !Cnt! GEQ %ReplaceLine% GOTO :exit_loop_cpp
-@REM    )
-@REM :exit_loop_cpp
-@REM echo."#include <%nxtDay_str_h%>">> "%TempFile%"
-@REM more +%ReplaceLine% < "%ReplaceFile%">> "%TempFile%"
-@REM copy /y "%TempFile%" "%ReplaceFile%"
-@REM del "%TempFile%"
-
-@REM set ReplaceLine=8
-@REM set ReplaceFile=Makefile
-@REM set TempFile=tmp.txt
-@REM if exist %TempFile% del %TempFile%
-@REM set /A Cnt=1
-@REM for /F "tokens" %%a in (%ReplaceFile%) do (
-@REM    echo.%%a>> "%TempFile%"
-@REM    set /A Cnt+=1
-@REM    if !Cnt! GEQ %ReplaceLine% GOTO :exit_loop_cpp
-@REM    )
-@REM :exit_loop_mk
-@REM echo."MAIN = %nxtDay_str_cpp% ">> "%TempFile%"
-@REM more +%ReplaceLine% < "%ReplaceFile%">> "%TempFile%"
-@REM copy /y "%TempFile%" "%ReplaceFile%"
-@REM del "%TempFile%"
-
 REM create sample.txt
 copy NUL sample.txt >> NUL
 
@@ -116,25 +84,15 @@ REM close all vscode files (Ctrl+K, Ctrl+W), open all non-directory files in vsc
 
 REM Check if the TERM_PROGRAM environment variable is set to 'vscode'
 if "%TERM_PROGRAM%"=="vscode" (
-  @REM "%~dp0\closeVSCgroup.ahk"
+  call "%~dp0\closeVSCgroup.ahk"
   for %%f in (*) do (
     if not "%%~af"=="d" (
-      echo %%f
+      start "" /B cmd /C code %%f
     )
   )
-  echo !nxtDay_str_cpp!
 ) else (
   echo This terminal is not running in Visual Studio Code.
 )
-
-pause
-del /q .\*
-endlocal & ( set nxtDay_strsp=%nxtDay_strsp% )
-echo "%~dp0%nxtDay_strsp%"
-cd "%~dp0%nxtDay_strsp%"
-
-REM Exit the script
-exit /b
 
 REM add git commit, depending on command line input
 :git
@@ -149,10 +107,12 @@ if defined gitparam (
 )
 
 REM change directories to the desired directory
-endlocal & (
-cd "%~dp0!nxtDay_strsp!")
+endlocal & ( set nxtDay_strsp=%nxtDay_strsp% )
+cd "%~dp0%nxtDay_strsp%"
 
 REM Exit the script
 exit /b
   
+REM del /q .\*
+
 
