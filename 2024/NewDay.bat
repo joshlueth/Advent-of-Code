@@ -110,10 +110,18 @@ if %ERRORLEVEL%==0 (
 )
 :end_git
 
-REM change directories to the desired directory
+REM change directories to the desired directory if variables are defined
+if not defined !nxtDay_strsp! (
+  goto :end
+)
+
+:end_cd
 endlocal & ( set nxtDay_strsp=%nxtDay_strsp% )
 cd "%~dp0%nxtDay_strsp%"
-
 REM Exit the script
+exit /b
+
+:end
+endlocal
 exit /b
 
