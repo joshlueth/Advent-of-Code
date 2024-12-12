@@ -1,4 +1,5 @@
 @echo off
+set "nxtDay_strsp="
 setlocal enableDelayedExpansion
 
 REM Check if argument is provided
@@ -8,7 +9,7 @@ if "%~1"=="-h" GOTO help
 if "%~1"=="--help" GOTO help
 
 GOTO afterhelp
-help:
+:help
   echo Please provide an integer argument to copy from that day to the next day,
   echo or provide "git" to add and commit the current directory.
   echo Preappend "git" to commit the specific day directory.
@@ -103,7 +104,7 @@ if not defined gitparam (
 )
 git diff --cached --quiet --exit-code
 if %ERRORLEVEL%==0 (
-  git add . >> "%~dp0temp.log"
+  git add "%CD%" >> "%~dp0temp.log"
   git commit -m "!nxtDay_strsp! Scaffolding" >> "%~dp0temp.log"
 ) else (
   echo Did not add or commit to git: There are currently staged changes.
@@ -111,7 +112,7 @@ if %ERRORLEVEL%==0 (
 :end_git
 
 REM change directories to the desired directory if variables are defined
-if not defined !nxtDay_strsp! (
+if not defined nxtDay_strsp (
   goto :end
 )
 
