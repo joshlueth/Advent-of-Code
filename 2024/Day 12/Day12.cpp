@@ -6,12 +6,13 @@
 #include <vector>
 #include <set>
 #include <utility>
+#include <tuple>
 
 int main()
 {
 	auto t1 {std::chrono::high_resolution_clock::now()};
 
-	std::string fileName {"input.txt"};
+	std::string fileName {"sample1.txt"};
 
 	std::ifstream inputFile {fileName};
 	if (!inputFile)
@@ -42,24 +43,26 @@ int main()
   // of a neighboring type and traversed, decrease perimiter count by 1
   // of a neighboring type and not traversed, add to traverse queue (which is a set)
 
-  int ap {0};
+  std::pair<int,int> ap {std::make_pair(0,0)};
   std::vector<std::vector<bool>> traversed(map.size(),std::vector<bool>(map[0].size(),false));
   for (std::size_t rw {0}; rw<map.size(); ++rw) {
     for (std::size_t ch {0}; ch<map[0].size(); ++ch) {
       if (traversed[rw][ch]) continue;
 // std::cout << rw << " " << ch << " " << map[rw][ch] << "\n";
-      ap += region(map,traversed,rw,ch);
+      std::pair<int,int> ap_update {};
+      ap_update = region(map,traversed,rw,ch);
+      ap.first += ap_update.first;
+      ap.second += ap_update.second;
     } 
   }
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
+  std::cout << "Sum of Area multiplied by Perimeter for all regions: " << ap.first << "\n";
+  std::cout << "Sum of Area multiplied by Number of Sides for all regions: " << ap.second << "\n";
 
-	auto t4 {std::chrono::high_resolution_clock::now()};
-
-  std::cout << "Sum of Area multiplied by Perimeter for all regions: " << ap << "\n";
 	std::cout << "Program took, in microseconds:" << "\n";
-	std::cout << "  Total Time: " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
+	std::cout << "  Total Time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t1).count() << "\n";
 	std::cout << "  Reading in File: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
 	std::cout << "  Problem Solving: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t1).count() << "\n";
 
@@ -67,8 +70,8 @@ int main()
 	return 0;
 }
 
-int region(const std::vector<std::vector<char>>& map, std::vector<std::vector<bool>>& traversed, std::size_t rw, std::size_t ch ) {
-  std::pair<int,int> ap {std::make_pair(0,0)};
+std::pair<int,int> region(const std::vector<std::vector<char>>& map, std::vector<std::vector<bool>>& traversed, std::size_t rw, std::size_t ch ) {
+  std::tuple<int,int,int> ap {std::make_tuple(0,0,0)};
   std::set<std::pair<std::size_t,std::size_t>> queue={std::make_pair(rw,ch)};
   while (!queue.empty()){
     cell(map,traversed,queue,ap);
@@ -78,11 +81,11 @@ int region(const std::vector<std::vector<char>>& map, std::vector<std::vector<bo
 // for (auto pr : queue) {
 //   std::cout << "queue entries: " << pr.first << " " << pr.second << "\n";
 // }
-  return ap.first*ap.second;
+  return std::make_pair(std::get<0>(ap)*std::get<1>(ap),std::get<0>(ap)*std::get<2>(ap));
 }
 
 void cell(const std::vector<std::vector<char>>& map, std::vector<std::vector<bool>>& traversed,
-          std::set<std::pair<std::size_t,std::size_t>>& queue, std::pair<int,int>& ap) {
+          std::set<std::pair<std::size_t,std::size_t>>& queue, std::tuple<int,int,int>& ap) {
 // by definition, have not traversed a cell in the queue, and it is of the same region
   auto cl = *queue.begin();
 // for (auto i:traversed) {
@@ -92,11 +95,11 @@ void cell(const std::vector<std::vector<char>>& map, std::vector<std::vector<boo
 //   std::cout << "\n";
 // }
 // std::cout << "location chosen: " << cl.first << " " << cl.second << " map size " << map.size() << " " << map[0].size() << "\n";
-  ap.first+=1;
-  ap.second+=4;
+  std::get<0>(ap)+=1;
+  std::get<1>(ap)+=4;
   if (cl.first>0) {
     if (map[cl.first-1][cl.second]==map[cl.first][cl.second]) {
-      ap.second-=1;
+      std::get<1>(ap)-=1;
       if (!traversed[cl.first-1][cl.second]) {
         queue.insert(std::make_pair(cl.first-1,cl.second));
       }
@@ -104,7 +107,7 @@ void cell(const std::vector<std::vector<char>>& map, std::vector<std::vector<boo
   }             
   if (cl.first+1<map.size()) {
     if (map[cl.first+1][cl.second]==map[cl.first][cl.second]) {
-      ap.second-=1;
+      std::get<1>(ap)-=1;
       if (!traversed[cl.first+1][cl.second]) {
         queue.insert(std::make_pair(cl.first+1,cl.second));
       }
@@ -112,7 +115,7 @@ void cell(const std::vector<std::vector<char>>& map, std::vector<std::vector<boo
   }
   if (cl.second>0) {
     if (map[cl.first][cl.second-1]==map[cl.first][cl.second]) {
-      ap.second-=1;
+      std::get<1>(ap)-=1;
       if (!traversed[cl.first][cl.second-1]) {
         queue.insert(std::make_pair(cl.first,cl.second-1));
       }
@@ -120,7 +123,7 @@ void cell(const std::vector<std::vector<char>>& map, std::vector<std::vector<boo
   }
   if (cl.second+1<map[0].size()){
     if (map[cl.first][cl.second+1]==map[cl.first][cl.second]) {
-      ap.second-=1;
+      std::get<1>(ap)-=1;
       if (!traversed[cl.first][cl.second+1]) {
         queue.insert(std::make_pair(cl.first,cl.second+1));
       }
