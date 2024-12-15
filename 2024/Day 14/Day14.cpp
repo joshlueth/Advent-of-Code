@@ -74,7 +74,14 @@ int main(int argc, char* argv[])
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
-  for (int sec {1}; sec<10000; sec++) {
+// count the number of neighboring cells horizontally and vertically, if >=300 (arbitrary score for 500 robots), print screen to check
+// also could have looked for straight lines, or noticed that they semi-cohered horizontally and vertically every 101 and 103 iterations,
+// and calculated how many iterations it would take for them to colilde.
+// or checked when the robots were in unique positions (not guaranteed though!)
+
+// Unfortunately I came up with none of this on my own since I didn't really know what it would look like at all
+// But it's very cool though!!
+  for (int sec {1}; sec<grid_sz[0]*grid_sz[1]+1; sec++) {
     nSeconds(1,pv_copy,grid_sz,half);
     print2screen(pv_copy,grid_sz,sec);
   }
