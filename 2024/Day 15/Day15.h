@@ -8,5 +8,7 @@ void adjustPosition(std::pair<std::size_t,std::size_t>& , const char );
 void reversePosition(std::pair<std::size_t,std::size_t>& , const char );
 void moveBoxes(std::pair<std::size_t,std::size_t>& , const char , std::vector<std::vector<char>>& );
 void moveBoxes2(std::pair<std::size_t,std::size_t>& , const char , std::vector<std::vector<char>>& );
+void moveBoxTree(std::pair<std::size_t,std::size_t>& , const char , std::vector<std::vector<char>>& );
+std::pair<std::size_t,std::size_t> findPair(std::pair<std::size_t,std::size_t> , const char );
 std::size_t trackScore(const std::vector<std::vector<char>>& );
 
