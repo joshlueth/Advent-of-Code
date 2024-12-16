@@ -9,6 +9,7 @@
 #include <map>
 #include <tuple>
 #include <iterator>
+#include <set>
 
 int main(int argc, char* argv[])
 {
@@ -82,15 +83,33 @@ int main(int argc, char* argv[])
   std::tuple<std::size_t,std::size_t,std::size_t> startTuple {std::make_tuple(start.first,start.second,0)};
   std::multimap<int,std::tuple<std::size_t,std::size_t,std::size_t>> unvisited {};
   unvisited.insert(std::make_pair(0,startTuple));
-  Dijkstra(nodes,visited,unvisited);
+  std::vector<std::vector<std::vector<std::vector<std::tuple<std::size_t,std::size_t,std::size_t>>>>> pathing{};
+  pathing = Dijkstra(nodes,visited,unvisited);
 
   int pathScore {};
-  pathScore = *std::min_element(nodes[end.first][end.second].begin(),nodes[end.first][end.second].end());
+  std::vector<int>::iterator end_it {std::min_element(nodes[end.first][end.second].begin(),nodes[end.first][end.second].end())};
+  pathScore = *end_it;
+
+  std::tuple<std::size_t,std::size_t,std::size_t> end_tuple {std::make_tuple(end.first,end.second,std::distance(nodes[end.first][end.second].begin(),end_it))};
+  std::set<std::tuple<std::size_t,std::size_t,std::size_t>> tiles_dir{};
+  tiles_dir.insert(end_tuple);
+  pathTrace(pathing,end_tuple,tiles_dir);
+
+  std::set<std::pair<std::size_t,std::size_t>> tiles {};
+  for (std::tuple<std::size_t,std::size_t,std::size_t> tpl : tiles_dir) {
+    tiles.insert(std::make_pair(std::get<0>(tpl),std::get<1>(tpl)));
+  }
+
+  std::size_t numTiles {};
+  numTiles = tiles.size();
+
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
 // for part 2, the best way is probably to create a data structure inside Dijkstra that keeps track of optionally many previous nodes
 // then when we return this data structure, we begin at end and find add each new node to a set
+
+// data structure is 'pathing': [rw][cl][dir][node#][tuple:rw,cl,dir of previous node]
 
   // for (auto rw : nodes) {
   //   for (auto cl : rw) {
@@ -102,15 +121,13 @@ int main(int argc, char* argv[])
   //   std::cout << "\n\n";
   // }
 
-  auto t4 {std::chrono::high_resolution_clock::now()};
-
   std::cout << "Lowest Path Score: " << pathScore << "\n";
+  std::cout << "Number of Tiles in *a* Best Path: " << numTiles << "\n";
 
 	std::cout << "Program took, in microseconds:" << "\n";
-	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
+	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t1).count() << "\n";
 	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
-	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
-	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
+	std::cout << "  Problem Solving (Parts 1+2): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 
 
 	return 0;
@@ -135,8 +152,12 @@ std::pair<std::size_t,std::size_t> findChar(const std::vector<std::vector<char>>
 // remove current node (should be first entry for an ordered multimap)
 // once again, go to node with smallest distance and repeat
 
-void Dijkstra(std::vector<std::vector<std::vector<int>>>& nodes, std::vector<std::vector<std::vector<bool>>>& visited, std::multimap<int,std::tuple<std::size_t,std::size_t,std::size_t>>& unvisited) {
+std::vector<std::vector<std::vector<std::vector<std::tuple<std::size_t,std::size_t,std::size_t>>>>> Dijkstra(std::vector<std::vector<std::vector<int>>>& nodes, std::vector<std::vector<std::vector<bool>>>& visited, std::multimap<int,std::tuple<std::size_t,std::size_t,std::size_t>>& unvisited) {
 // where there are still unreached nodes to be visited
+  std::vector<std::vector<std::vector<std::vector<std::tuple<std::size_t,std::size_t,std::size_t>>>>> 
+    pathing(nodes.size(),std::vector<std::vector<std::vector<std::tuple<std::size_t,std::size_t,std::size_t>>>>(nodes[0].size(),
+      std::vector<std::vector<std::tuple<std::size_t,std::size_t,std::size_t>>>(4)));
+
   while (unvisited.size()!=0) {
 // set current starting node
   auto cnode = *unvisited.begin();
@@ -157,8 +178,20 @@ void Dijkstra(std::vector<std::vector<std::vector<int>>>& nodes, std::vector<std
     if (it!=unvisited.end() && cnode.first+1000<it->first) {
       unvisited.erase(it);
       unvisited.insert(std::make_pair(cnode.first+1000,newNode));
+      // new path
+      std::vector<std::tuple<std::size_t,std::size_t,std::size_t>> path {};
+      path.push_back(cnode.second);
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)] = path;
+    } else if (it!=unvisited.end() && cnode.first+1000==it->first) {
+      // multiple paths
+      std::tuple<std::size_t,std::size_t,std::size_t> path {cnode.second};
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)].push_back(path);
     } else if (it==unvisited.end()) {
       unvisited.insert(std::make_pair(cnode.first+1000,newNode));
+      // new path
+      std::vector<std::tuple<std::size_t,std::size_t,std::size_t>> path {};
+      path.push_back(cnode.second);
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)] = path;
     }
   }
   newNode = CCW(cnode.second);
@@ -168,8 +201,20 @@ void Dijkstra(std::vector<std::vector<std::vector<int>>>& nodes, std::vector<std
     if (it!=unvisited.end() && cnode.first+1000<it->first) {
       unvisited.erase(it);
       unvisited.insert(std::make_pair(cnode.first+1000,newNode));
+      // new path
+      std::vector<std::tuple<std::size_t,std::size_t,std::size_t>> path {};
+      path.push_back(cnode.second);
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)] = path;
+    } else if (it!=unvisited.end() && cnode.first+1000==it->first) {
+      // multiple paths
+      std::tuple<std::size_t,std::size_t,std::size_t> path {cnode.second};
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)].push_back(path);
     } else if (it==unvisited.end()) {
       unvisited.insert(std::make_pair(cnode.first+1000,newNode));
+      // new path
+      std::vector<std::tuple<std::size_t,std::size_t,std::size_t>> path {};
+      path.push_back(cnode.second);
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)] = path;
     }
   }
   newNode = forward(cnode.second);
@@ -179,8 +224,20 @@ void Dijkstra(std::vector<std::vector<std::vector<int>>>& nodes, std::vector<std
     if (it!=unvisited.end() && cnode.first+1<it->first) {
       unvisited.erase(it);
       unvisited.insert(std::make_pair(cnode.first+1,newNode));
+      // new path
+      std::vector<std::tuple<std::size_t,std::size_t,std::size_t>> path {};
+      path.push_back(cnode.second);
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)] = path;
+    } else if (it!=unvisited.end() && cnode.first+1==it->first) {
+      // multiple paths
+      std::tuple<std::size_t,std::size_t,std::size_t> path {cnode.second};
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)].push_back(path);
     } else if (it==unvisited.end()) {
       unvisited.insert(std::make_pair(cnode.first+1,newNode));
+      // new path
+      std::vector<std::tuple<std::size_t,std::size_t,std::size_t>> path {};
+      path.push_back(cnode.second);
+      pathing[std::get<0>(newNode)][std::get<1>(newNode)][std::get<2>(newNode)] = path;
     }
   }
 
@@ -188,6 +245,7 @@ void Dijkstra(std::vector<std::vector<std::vector<int>>>& nodes, std::vector<std
   unvisited.erase(unvisited.begin());
 // repeat while loop: leads to going to node with smallest distance
   }
+  return pathing;
 }
 
 // ENWS: CCW increases, CW decreases
@@ -225,3 +283,15 @@ std::multimap<int, std::tuple<std::size_t,std::size_t,std::size_t>>::iterator
   std::multimap<int, std::tuple<std::size_t,std::size_t,std::size_t>>::iterator ending {unvisited.end()};
   return ending;
 }
+
+void pathTrace(const std::vector<std::vector<std::vector<std::vector<std::tuple<std::size_t,std::size_t,std::size_t>>>>>& pathing, 
+              const std::tuple<std::size_t,std::size_t,std::size_t>& end, std::set<std::tuple<std::size_t,std::size_t,std::size_t>>& tiles) {
+// data structure is 'pathing': [rw][cl][dir][node#][tuple:rw,cl,dir of previous node]
+  for (std::tuple<std::size_t,std::size_t,std::size_t> node_tuple : pathing[std::get<0>(end)][std::get<1>(end)][std::get<2>(end)]) {
+    if (tiles.find(node_tuple)==tiles.end()) {
+      tiles.insert(node_tuple);
+      pathTrace(pathing, node_tuple, tiles);
+    }
+  }
+
+  }
