@@ -3,6 +3,10 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <vector>
+#include <iterator>
+#include <algorithm>
+
 
 int main(int argc, char* argv[])
 {
@@ -34,15 +38,56 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
-
+  std::vector<int> abc {};
+  std::vector<int> instructions {};
+  bool onRegisters {true};
 	while (std::getline(inputFile,inputStr))
 	{
+    if (inputStr=="") {
+      onRegisters = false;
+      continue;
+    }
+    std::string numbers = "0123456789";
+    std::size_t found {inputStr.find_first_of(numbers.c_str())};
+    std::size_t found_tracker {0};
+    if (found!=0) {
+      found_tracker = found-1;
+    }
+    std::string inputStr_nm {};
 
+    while (found != std::string::npos) {
+      if (found==found_tracker+1 || found==0) {
+        inputStr_nm += inputStr[found];
+      } else {
+        if (onRegisters) {
+          abc.push_back(std::stoi(inputStr_nm));
+        } else {
+          instructions.push_back(std::stoi(inputStr_nm));
+        }
+        inputStr_nm = "";
+        inputStr_nm += inputStr[found];
+      }
+      found_tracker = found;
+      found = inputStr.find_first_of(numbers.c_str(), found+1);
+    }
+    if (onRegisters) {
+      abc.push_back(std::stoi(inputStr_nm));
+    } else {
+      instructions.push_back(std::stoi(inputStr_nm));
+    }
 	}
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
+
+// literal operand: value itself
+// combo operand: 0->0, 1->1, 2->2, 3->3, 4->A, 5->B, 6->C, 7->RESERVED
+// instructions: 0: A/2^combo->A, 1: bitwise XOR B and combo->B, 2: combo%8 (lowest 3 bits)->B
+// 3: if A!=0, instruction pointer->literal operand; don't increase instruction pointer
+// 4: bitwise XOR B and C->output, comma separated, 5: combo%8->output, 6: A/2^combo->B, 7: A/2^combo->C
+
+  std::vector<int>::iterator it {instructions.begin()};
 
 
 
