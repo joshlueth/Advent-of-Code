@@ -97,11 +97,92 @@ int main(int argc, char* argv[])
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
+// instructions remains constant
+// want to find the new value for register A such that the output is equal to the instructions!
+
+// SO, we need to begin with some notes to try and figure out what is going on.
+// there are 16 instructions that need to be printed, and we know exactly what they are
+// splitting them into opcode and operand, we have
+// 2,4 1,5 7,5 1,6 0,3 4,1 5,5 3,0
+// Immediately we notice that the last two sequences are print(B%8) and reset to the beginning unless A==0
+// So the preceding 6 instructions must alter B to the point that the print outputs the correct answer
+// They are
+// A%8 -> B; B^(5=101) -> B; A/(2**B) -> C; B^(6=110) -> B; A/8 -> A; B^C -> B;
+// every cycle we get a new B value, and then only perform bitwise operations on it.
+// Therefore B has to be the actual value of the instructions at each point
+// (B=fst^101)^110:
+// if t=1, we get 0,0; if t=0, we get 1,1; = -t
+// if s=1, we get 1,0; if s=0 ,we get 0,1; = -s
+// if f=1, we get 0,1; if f=0 we get 1,0; = f
+// so we clearly just flip the last two bits of B such that there is a bijective mapping 1-2, 0-3, 4-7, 5-6
+// now since the inverse of XOR is XOR itself, we can get the necessary mod 8 of A by taking
+// ((B^C)^6)^5 must be equal to A%8
+// Notice that since A is continually divided by 8, we can simply construct A in a base eight fashion by:
+// required value of B -> A mod 8 -> multiplied by 8
+// now the ultimate required value of B after the mod 8 is given by ((O^C)^6)^5, where O is the outputted value
+// We only care about the last three digits of C, which are given by some A!!
+// SO clearly this is more intuitive in a bitwise sense. Let b refer to a bit. For A=bn b(n-1) b(n-2) ... b3 b2 b1 b0 (n is an arbitrary power)
+// B = b2 b1 b0
+// B = (b2^1) (b1^0) (b0^1)
+// C = b(y+2) b(y+1) b(y), y is given by B
+// B = b2 -b1 -b0
+// A = bn b(n-1) b(n-2) ... b5 b4 b3
+// B(=Output) = b2^c2 -b1^c1 -b0^c0
+
+// so we start with A = 0, so C = 0
+
+  std::vector<int>::reverse_iterator itb {instructions.rbegin()};
+  long long int A{0}, B{0};
+  while (itb!=instructions.rend()) {
+    B = *itb;
+  // use an iterative method to find C
+  // A%8 -> B; B^(5=101) -> B; A/(2**B) -> C; B^(6=110) -> B; A/8 -> A; B^C -> B;
+
+  // We must have, given output B and initial value A
+  // B = (((A%8)^5)^6)^C
+  // C = A/(2**((A%8)^5)
+  // A = A/8
+
+  // so given A*, we have
+  // A = A*/8
+  // B = (((A*%8)^5)^6) ^ (A*/(2**((A*%8)^5))
+
+  // for our problem, we are given B. Then it reduces to finding a 3 digit (in binary, so in base, from 0-7) number N such that
+  // given value A* = A(8) + N
+  // and output value B
+  // find B = (((A*%8)^5)^6) ^ (A*/(2**((A*%8)^5)) = ((N^5)^6) ^ (A*/(2**(N^5))
+  // since bitwise XOR is associative
+  // (0^0)^0 = 0 : assoc
+  // (0^0)^1 = 1 : assoc w/ 3
+  // (0^1)^0 = 1 : assoc w/ 2
+  // (0^1)^1 = 0 : assoc w/ 7
+  // (1^0)^0 = 1 : comm w/ 3
+  // (1^0)^1 = 0 : comm w/ 4
+  // (1^1)^0 = 0 : assoc w/ 4
+  // (1^1)^1 = 1 : assoc
+  // we have B = (N^5) ^ 6 ^ (A*/(2**(N^5)), M=N^5
+  // to B^6 = M ^ (A*/(2**(M))
+  // to B^6 ^ (A*/(2**(M)) = M 
+  // to N = M^5
+    int M {0};
+    while ( (B^6) != M^static_cast<long long>(A/(pow(2,M)))) {
+      M += 1;
+      if (M==8) {
+        std::cout << "M should never be 8\n";
+        std::cout << A << " " << (B^6) << "\n";
+      }
+    }
+    int N {M^5};
+    std::cout << "N " << N << "\n";
+    A = 8 * A + N;
+    ++itb;
+  }
 
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
   std::cout << "The concatenated answer is: " << output << "\n";
+  std::cout << "The new value for register A is: " << A << "\n";
 
 	std::cout << "Program took, in microseconds:" << "\n";
 	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
