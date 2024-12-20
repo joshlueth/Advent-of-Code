@@ -14,5 +14,4 @@ void pathTrace (std::vector<std::vector<char>> , const std::vector<std::vector<s
 
 std::pair<std::size_t,std::size_t> findChar(const std::vector<std::vector<char>>& , const char );
 
-int findCheats(const std::vector<std::vector<char>>& , const std::vector<std::vector<int>>& , const std::vector<std::vector<int>>& , 
-               const int , const int , const int );
+int findCheats(const std::vector<std::vector<int>>& , const int , const int , const int );

@@ -96,12 +96,29 @@ int main(int argc, char* argv[])
 
   int numSteps {startpath[end.first][end.second]};
 
+// for efficiency purposes: get a list of all '.' coordinates including:
+// startpath, endpath, xcoord, ycoord
+// with startpath <= numSteps and endpath <= numSteps
+  auto t3 {std::chrono::high_resolution_clock::now()};
+
+  std::vector<std::vector<int>> path_info {};
+  for (std::size_t rw {0}; rw<map.size(); ++rw) {
+    for (std::size_t cl {0}; cl<map[0].size(); ++cl) {
+      if (map[rw][cl]=='.' && (startpath[rw][cl]<=numSteps || endpath[rw][cl]<=numSteps)) {
+        std::vector<int> into {startpath[rw][cl], endpath[rw][cl], int(rw), int(cl)};
+        path_info.push_back(into);
+      }
+    }
+  }
+
+  auto t4 {std::chrono::high_resolution_clock::now()};
+
   int numCheats1 {}, numCheats2 {};
   int threshold {100};
-  numCheats1 = findCheats(map, startpath, endpath, numSteps, threshold, 2);
-  numCheats2 = findCheats(map, startpath, endpath, numSteps, threshold, 20);
+  numCheats1 = findCheats(path_info, numSteps, threshold, 2);
+  numCheats2 = findCheats(path_info, numSteps, threshold, 20);
 
-  auto t3 {std::chrono::high_resolution_clock::now()};
+  auto t5 {std::chrono::high_resolution_clock::now()};
 
   std::cout << "Minimum number of steps to exit: " << numSteps << "\n";
   std::cout << "Number of shortcuts that saved at least " << threshold << " picoseconds, cheat distance 2: " << numCheats1 << "\n";
@@ -110,9 +127,11 @@ int main(int argc, char* argv[])
   std::cout << "\n";
 
 	std::cout << "Program took, in microseconds:" << "\n";
-	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t1).count() << "\n";
-	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
-	std::cout << "  Problem Solving:          " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
+	std::cout << "  Total Time:                     " << std::chrono::duration_cast<std::chrono::microseconds>(t5-t1).count() << "\n";
+	std::cout << "  Reading in Input File:          " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
+	std::cout << "  Problem Solving (pathing):      " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
+	std::cout << "  Problem Solving (getting list): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
+	std::cout << "  Problem Solving (cheats):       " << std::chrono::duration_cast<std::chrono::microseconds>(t5-t4).count() << "\n";
 
 	return 0;
 }
@@ -225,30 +244,19 @@ std::pair<std::size_t,std::size_t> findChar(const std::vector<std::vector<char>>
   return loc;
 }
 
-int findCheats(const std::vector<std::vector<char>>& map, const std::vector<std::vector<int>>& startpath, const std::vector<std::vector<int>>& endpath, 
-               const int numSteps, const int threshold, const int dist) {
+int findCheats(const std::vector<std::vector<int>>& path_info, const int numSteps, const int threshold, const int dist) {
 
-  std::map<int,int> saved {};
+  // std::map<int,int> saved {};
   int counter {0};
-  for(std::size_t rw {1}; rw<map.size()-1; ++rw) {
-    for(std::size_t cl {1}; cl<map[0].size()-1; ++cl) {
-      if (map[rw][cl]=='#') continue;
-      for(std::size_t rw2 {1}; rw2<map.size()-1; ++rw2) {
-        for(std::size_t cl2 {1}; cl2<map[0].size()-1; ++cl2) {
-          if (map[rw2][cl2]=='#') continue;
-        // if within distance norm
-          int distance_norm {std::abs(int(rw2)-int(rw))+std::abs(int(cl2)-int(cl))};
-// std::cout << rw << " " << cl << " " << rw2 << " " << cl2 << " " << distance_norm << "\n";
-          if (distance_norm <= dist) {
-          // score is startpath[rw][cl] + endpath[rw2][cl2] + distance norm
-            int score {startpath[rw][cl] + endpath[rw2][cl2] + distance_norm};
-            if (score < numSteps) {
-// std::cout << "score " << score << "\n";
-              saved[numSteps - score] += 1;
-              if (numSteps-score>=threshold) counter += 1;
-            }
-          }
-        }
+  for (std::size_t st {0}; st<path_info.size(); ++st) {
+    for (std::size_t en {0}; en<path_info.size(); ++en) {
+      int distance_norm {std::abs(path_info[en][3]-path_info[st][3]) + std::abs(path_info[en][2]-path_info[st][2])};
+      if (distance_norm <= dist && distance_norm >= 2) {
+        int score {path_info[st][0]+path_info[en][1]+distance_norm};
+        // if (score < numSteps) {
+          // saved[numSteps - score] += 1;
+          if (numSteps-score>=threshold) counter += 1;
+        // }
       }
     }
   }
