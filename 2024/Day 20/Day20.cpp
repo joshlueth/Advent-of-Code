@@ -58,89 +58,61 @@ int main(int argc, char* argv[])
   map[start.first][start.second] = '.';
   map[end.first][end.second] = '.';
 
-  std::vector<std::vector<int>> distance {};
-  distance = Dijkstra(map,start,end,'#','c');
-
-  int numSteps {distance[end.first][end.second]};
-
-// print the map with '.' replaced by distances found through Dijkstra
-  // for (std::size_t rw {0}; rw<map.size(); ++rw) {
-  //   for (std::size_t cl{0}; cl<map[0].size(); ++cl) {
-  //     if (map[rw][cl]=='#') {
-  //       if (distance[rw][cl]!=-1) std::cout << "\ndistance not -1\n";
-  //       std::cout << "  # ";
-  //     } else if (map[rw][cl]=='.') {
-  //       std::string dist_score {std::to_string(distance[rw][cl])};
-  //       if (dist_score.size()<4) dist_score += " ";
-  //       while (dist_score.size()<4) dist_score = " " + dist_score;
-  //       std::cout << dist_score;
-  //     }
-  //   }
-  //   std::cout << "\n";
-  // }
-  // std::cout << "\n";
-
-// now with the distance, we can iterate through each '#' and find the maximum and minimum score of the four scores surrounding
-// the time saved is the difference between those scores
-
-  int threshold {100};
-  int counter {0};
-  // std::vector<std::vector<int>> saved (map.size(), std::vector<int>(map[0].size(),0));
-  std::map<int,int> saved_counting {};
-  for (std::size_t rw {1}; rw<map.size()-1; ++rw) {
-    for (std::size_t cl{1}; cl<map[0].size()-1; ++cl) {
-      if (map[rw][cl]=='.') continue;
-      std::vector<int> dist_saved {};
-      dist_saved = FindDistanceSaved(rw,cl,distance);
-      // saved[rw][cl] = dist_saved;
-      for (auto dist : dist_saved) {
-        if (dist>=threshold) counter += 1;
-        saved_counting[dist] += 1;
-      }
-    }
-  }
-
-// print out how many cheats there are for a given amount of time save
-  // for (auto pair : saved_counting) {
-  //   std::cout << "- There are " << pair.second << " cheat(s) that save(s) " << pair.first << " picoseconds\n";
-  // }
-
-// visualize the distance saved
-  // for (std::size_t rw {0}; rw<saved.size(); ++rw) {
-  //   for (std::size_t cl {0}; cl<saved[0].size(); ++cl) {
-  //     if (rw==0 || cl==0 || rw==saved.size()-1 || cl==saved[0].size()-1) {
-  //       std::cout << "  # ";
-  //       continue;
-  //     } else if (map[rw][cl]=='.') {
-  //       std::cout << "  . ";
-  //       continue;
-  //     }
-  //     std::string st {};
-  //     st = std::to_string(saved[rw][cl]);
-  //     while (st.size()<4) st  = " " + st;
-  //     std::cout << st;
-  //   }
-  //   std::cout << "\n";
-  // }
-  // std::cout << "\n";
-
-  auto t3 {std::chrono::high_resolution_clock::now()};
-
 // Okay, so we have a 2D vector with 
 
 // ISSUE 1: I don't know that my distance is correct. It is possible to have a map that gives an incorrect answer:
+// ####### #######
+// #.....# #23456#
+// #.###.# #1###7#
+// #S.#.E# #S1#9E#
+// ####### #######
+// clearly, it takes 8 second to reach the end, and 4 seconds with the cheat
+// according to our algorithm for checking cheats, we would save 8 seconds though!
+// clearly we need to do BFS/Dijkstra's from start-end and end-start:
+// for the above maps, this gives 
+// start-end  end-start
+// ####### #######
+// #23456# #65432#
+// #1###7# #7###1#
+// #S1#9E# #S9#1E#
+// ####### #######
+// then to get the amount of time saved by a cheat of length n
+// it used to take startpath_score[end coordinates] time to get there
+// now it takes startpath_score + endpath_score + n
+// To get the time saved, we simply subtract these two.
 
-  auto t4 {std::chrono::high_resolution_clock::now()};
+// Now of course, we need to go through all possible start and ending points for the path
+// this will roughly scale with n^2
+// probably the easiest way to do this is to get a list of all the '.' coordinates
+// then double for loop it
+// check the 1-norm distance: if <= cheat distance allowed, check if time_saved > 0
+// if so, add it to the map.
+
+  std::vector<std::vector<int>> startpath {};
+  std::vector<std::vector<int>> endpath {};
+
+  startpath = Dijkstra(map, start, end, '#', 'c');
+  endpath = Dijkstra(map, end, start, '#', 'c');
+
+  int numSteps {startpath[end.first][end.second]};
+
+  int numCheats1 {}, numCheats2 {};
+  int threshold {100};
+  numCheats1 = findCheats(map, startpath, endpath, numSteps, threshold, 2);
+  numCheats2 = findCheats(map, startpath, endpath, numSteps, threshold, 20);
+
+  auto t3 {std::chrono::high_resolution_clock::now()};
 
   std::cout << "Minimum number of steps to exit: " << numSteps << "\n";
-  std::cout << "Number of shortcuts that saved at least " << threshold << " picoseconds: " << counter << "\n";
+  std::cout << "Number of shortcuts that saved at least " << threshold << " picoseconds, cheat distance 2: " << numCheats1 << "\n";
+  std::cout << "Number of shortcuts that saved at least " << threshold << " picoseconds, cheat distance 20: " << numCheats2 << "\n";
 
+  std::cout << "\n";
 
 	std::cout << "Program took, in microseconds:" << "\n";
-	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
+	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t1).count() << "\n";
 	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
-	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
-	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
+	std::cout << "  Problem Solving:          " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 
 	return 0;
 }
@@ -253,23 +225,37 @@ std::pair<std::size_t,std::size_t> findChar(const std::vector<std::vector<char>>
   return loc;
 }
 
-std::vector<int> FindDistanceSaved(const std::size_t rw, const std::size_t cl, const std::vector<std::vector<int>>& distance) {
-  std::vector<int> xdir {0,1,0,-1}, ydir {1,0,-1,0};
-  std::vector<int> scores_saved {};
-  std::vector<int> scores {};
-  for (std::size_t dir {0}; dir<4; ++dir) {
-    int score {};
-    score = distance[rw+xdir[dir]][cl+ydir[dir]];
-    scores.push_back(score);
-  }
-  for (std::size_t i {0}; i<scores.size()-1; ++i) {
-    for (std::size_t j {i+1}; j<scores.size(); ++j) {
-      if (scores[i]>=0 && scores[j]>=0) {
-        scores_saved.push_back(std::abs(scores[i]-scores[j])-2);
+int findCheats(const std::vector<std::vector<char>>& map, const std::vector<std::vector<int>>& startpath, const std::vector<std::vector<int>>& endpath, 
+               const int numSteps, const int threshold, const int dist) {
+
+  std::map<int,int> saved {};
+  int counter {0};
+  for(std::size_t rw {1}; rw<map.size()-1; ++rw) {
+    for(std::size_t cl {1}; cl<map[0].size()-1; ++cl) {
+      if (map[rw][cl]=='#') continue;
+      for(std::size_t rw2 {1}; rw2<map.size()-1; ++rw2) {
+        for(std::size_t cl2 {1}; cl2<map[0].size()-1; ++cl2) {
+          if (map[rw2][cl2]=='#') continue;
+        // if within distance norm
+          int distance_norm {std::abs(int(rw2)-int(rw))+std::abs(int(cl2)-int(cl))};
+// std::cout << rw << " " << cl << " " << rw2 << " " << cl2 << " " << distance_norm << "\n";
+          if (distance_norm <= dist) {
+          // score is startpath[rw][cl] + endpath[rw2][cl2] + distance norm
+            int score {startpath[rw][cl] + endpath[rw2][cl2] + distance_norm};
+            if (score < numSteps) {
+// std::cout << "score " << score << "\n";
+              saved[numSteps - score] += 1;
+              if (numSteps-score>=threshold) counter += 1;
+            }
+          }
+        }
       }
     }
   }
 
-  return scores_saved;
+  // for (auto pair : saved) {
+  //   std::cout << "- There are " << pair.second << " cheats that save " << pair.first << " picoseconds.\n";
+  // }
 
+  return counter;
 }
