@@ -201,10 +201,9 @@ int main(int argc, char* argv[])
 
 // Okay I give up on making something fully generalizable for a problem that doesn't matter. Instead I will just add powers of 8 to A
 
-  long long A {1};
-
-
-
+  long long A {0};
+  
+  recursiveInstruct(A, abc_cp, instructions);
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
@@ -221,12 +220,13 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-int combo(int operand, std::vector<long long> abc) {
-  if (operand==4) operand = abc[0];
-  else if (operand==5) operand = abc[1];
-  else if (operand==6) operand = abc[2];
+long long combo(int operand, std::vector<long long> abc) {
+  long long coperand {operand};
+  if (operand==4) coperand = abc[0];
+  else if (operand==5) coperand = abc[1];
+  else if (operand==6) coperand = abc[2];
   else if (operand==7) std::cerr << "Combo Operand 7 is Reserved and SHOULD NOT APPEAR\n";
-  return operand;
+  return coperand;
 }
 
 std::string instruct(std::vector<int>::iterator& it, std::vector<long long>& abc, std::vector<int>& instructions, bool comma) {
@@ -239,7 +239,7 @@ std::string instruct(std::vector<int>::iterator& it, std::vector<long long>& abc
   ++it;
   // std::cout << opcode << " " << operand << "\n";
   if (opcode==0) {
-    abc[0] = int(abc[0] / (pow(2,combo(operand,abc))));
+    abc[0] = abc[0] / (pow(2LL,combo(operand,abc)));
   } else if (opcode==1) {
     abc[1] = abc[1] ^ operand;
   } else if (opcode==2) {
@@ -254,49 +254,85 @@ std::string instruct(std::vector<int>::iterator& it, std::vector<long long>& abc
     output += std::to_string(combo(operand,abc)%8);
     if (comma) output += ",";
   } else if (opcode==6) {
-    abc[1] = int(abc[0] / (pow(2,combo(operand,abc))));
+    abc[1] = abc[0] / (pow(2LL,combo(operand,abc)));
   } else if (opcode==7) {
-    abc[2] = int(abc[0] / (pow(2,combo(operand,abc))));
+    abc[2] = abc[0] / (pow(2LL,combo(operand,abc)));
   }
   return output;
 }
 
-// pass in A, abc_cp, instructions, 
-long long recursiveInstruct(long long& A, std::vector<long long>& abc_cp, std::vector<int> instructions) {
-  long long B {abc_cp[1]}, C {abc_cp[2]};
-  std::vector<long long> abc {};
+// pass in A, abc_cp, instructions
 
-  for (std::size_t nout {0}; nout < instructions.size(); ++nout) {
+// each recursive loop is responsible for finding one octal digit
+// 
+bool recursiveInstruct(long long& A, std::vector<long long>& abc_cp, std::vector<int> instructions) {
+  long long B {abc_cp[1]}, C {abc_cp[2]}, A_in {A};
+  std::vector<long long> abc {};
+  long long octal_digit {0};
+  bool success {false};
+  int base {8};
+
+  while (octal_digit < base) {
+// std::cout << "octal digit " << octal_digit << "\n";
+    // check the current value of A
+    A = A_in + octal_digit;
+    if (A==0) {
+      octal_digit += 1;
+      continue;
+    }
+// std::cout << "A " << A << "\n";
+    abc = {A,B,C};
+    // establish iterators, variables for each instruction in the loop
     bool matches_thus_far {true};
     std::vector<int>::iterator it {instructions.begin()};
     std::string output {};
-    abc = {A, B, C};
-std::cout << "A " << dec2octal(A) << "\n";
+    std::vector<int> instructions_reverse = std::vector<int>(instructions.rbegin(), instructions.rend());
+// std::cout << "instructions\n";
+// for (auto in : instructions) {
+//   std::cout << in << " ";
+// }
+// std::cout << "\n";
+// std::cout << "instructions_reverse\n";
+// for (auto in : instructions_reverse) {
+//   std::cout << in << " ";
+// }
+// std::cout << "\n";
+    // for the current abc, get what the output is
     while (it!=instructions.end()) {
       output += instruct(it,abc,instructions,false);
     }
+// std::cout << "output " << output << "\n";
+    // check if the output thus far matches the instructions (starting with the end)
     for (std::size_t ch{0}; ch<output.size(); ch++) {
-std::cout << "comparing output and instructions ch: " << output[ch] << " " << instructions[ch] << "\n";
-      if (output[ch] - '0'==instructions[ch]) {
-std::cout << "success\n";
+      // if, for each character, it does so: continue
+// std::cout << "compare " << output[ch]-'0' << " " << instructions_reverse[ch] << "\n";
+      if (output[output.size()-1-ch] - '0'==instructions_reverse[ch]) {
         continue;
       } else {
-        if (A!=7) {
-          A += 1;
-          matches_thus_far = false;
-        } else {
-          A /= 8;
-          return A;
-        }
+      // match failed
+        matches_thus_far = false;
       }
-      
     }
-    if (!matches_thus_far) {
-      continue;
+// std::cout << "matches_thus_far " << matches_thus_far << "\n";
+
+    // if matches_thus_far is still true, then we have success so far! 
+    if (matches_thus_far) {
+      if (output.size()==instructions.size()) {
+        return true;
+      }
+      A *= base;
+      success = recursiveInstruct(A, abc_cp, instructions);
+      if (success) {
+        return success;
+      } else {
+        A /= base;
+      }
     }
-    A = 8*A;
-    A = recursiveInstruct(A, abc_cp, instructions);
+
+    octal_digit += 1;
   }
+  A /= base;
+  return success;
 }
 
 std::string dec2octal (long long A) {
