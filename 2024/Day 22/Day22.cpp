@@ -4,9 +4,8 @@
 #include <string>
 #include <chrono>
 #include <vector>
-#include <map>
 #include <algorithm>
-#include <set>
+#include <array>
 
 int main(int argc, char* argv[])
 {
@@ -52,11 +51,13 @@ int main(int argc, char* argv[])
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
+  const std::size_t hsh_base {19};
   int loops {2000}; // 2001 secret numbers if we count the first one
-  std::map<int,long long> seq {};
+  const std::size_t N {hsh_base*hsh_base*hsh_base*hsh_base};
+  std::array<int,N> seq {0};
   for (std::size_t sn {0}; sn<iniSecret.size(); ++sn) {
     int current_price {price(iniSecret[sn])}, old_price {0}, old_price_change_m3 {0}, old_price_change_m2 {0}, old_price_change_m1 {0}, price_change {0};
-    std::set<int> seq_lst {};
+    std::array<bool,N> seq_lst {true};
     for (int lp {0}; lp<loops; ++lp) {
       evolve(iniSecret[sn]);
 
@@ -68,10 +69,10 @@ int main(int argc, char* argv[])
       old_price_change_m1 = price_change;
       price_change = current_price - old_price;
 
-      int hsh {sequence_hash(price_change, old_price_change_m1, old_price_change_m2, old_price_change_m3)};
+      int hsh {sequence_hash(price_change, old_price_change_m1, old_price_change_m2, old_price_change_m3, hsh_base)};
 
-      // lp: 0, first price change (pc); 1, second pc; 2, third pc; 3, fourth pc - finally have a sequence
-      if (lp>=3 && seq_lst.insert(hsh).second) {
+      if (lp>=3 && seq_lst[hsh]) {
+        seq_lst[hsh] = false;
         seq[hsh] += current_price;
       }
     }
@@ -85,10 +86,8 @@ int main(int argc, char* argv[])
   }
 
   long long bananas {0};
-  for (const auto& entry : seq) {
-    if (entry.second > bananas) {
-      bananas = entry.second;
-    }
+  for (std::size_t entry {0}; entry < N; ++entry) {
+    if (seq[entry] > bananas) bananas = seq[entry];
   }
 
   auto t4 {std::chrono::high_resolution_clock::now()};
@@ -134,11 +133,11 @@ int price(const long long& num) {
   return num % 10;
 }
 
-int sequence_hash(const int& pm1, const int& pm2, const int& pm3, const int& pm4) {
+int sequence_hash(const int& pm1, const int& pm2, const int& pm3, const int& pm4, const std::size_t& hsh_base) {
   int hsh {};
   hsh += pm4 + 9;
-  hsh += 19 * (pm3 + 9);
-  hsh += 19 * 19 * (pm2 + 9);
-  hsh += 19 * 19 * 19 * (pm1 + 9);
+  hsh += hsh_base * (pm3 + 9);
+  hsh += hsh_base * hsh_base * (pm2 + 9);
+  hsh += hsh_base * hsh_base * hsh_base * (pm1 + 9);
   return hsh;
 }
