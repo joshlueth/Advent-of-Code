@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <set>
 #include <map>
+#include <iterator>
 
 int main(int argc, char* argv[])
 {
@@ -139,16 +140,41 @@ int main(int argc, char* argv[])
     }
   }
 
-
   auto t3 {std::chrono::high_resolution_clock::now()};
 
+// begin by adding the reverse edges such that we have the edges as an *unordered* pair
+  auto edges_full {edges};
+  for (auto entry : edges) {
+    int key {entry.second}, value {entry.first};
+    bool emplaced {false};
+    auto i1 = edges_full.equal_range(key);
+    for (auto i2=i1.first; i2!=i1.second; ++i2) {
+      if (i2->second > value) {
+        edges_full.emplace_hint(i2,key,value);
+        emplaced = true;
+        break;
+      }
+    }
+
+    if (!emplaced) edges_full.emplace(key,value);
+  }
+
+// create a maximum clique set such that the ordering is automatic
+  std::set<int> maxClique {}, R {}, X {}, P {nodes};
+  maxClique = BronKerbosch(R, P, X, edges);
+
+// convert the numeric sequence to the desired format
   std::string output {};
-  output = BronKerbosch(nodes, edges);
+  for (int node : maxClique) {
+    output += reverseComputerHash(node);
+    output += ',';
+  }
+  output.pop_back();
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
   std::cout << "3-Cliques with a computer's name starting with t: " << t3cliques << "\n";
-  std::cout << "Sorted maximal clique in string form " << output << "\n";
+  std::cout << "Sorted maximal clique in string form: " << output << "\n";
 
 	std::cout << "Program took, in microseconds:" << "\n";
 	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
@@ -180,6 +206,31 @@ bool startsWith_T(int hsh) {
   return false;
 }
 
-std::string BronKerbosch (std::set<int> nodes, std::multimap<int,int> edges) {
+std::set<int> BronKerbosch (std::set<int>& R, std::set<int>& P, std::set<int>& X, std::multimap<int,int>& edges) {
+  if (P.size()==0 && X.size()==0) return R;
+  std::size_t max_size {0};
+  std::set<int> maxClique {};
+  while(P.size()>0) {
+    int node {*P.begin()};
+    std::set<int> v {node}, Nv {};
+    auto Nv_it = edges.equal_range(node);
+    for (auto it=Nv_it.first; it!=Nv_it.second; ++it) {
+      Nv.insert(it->second);
+    }
+    std::set<int> maxClique_tmp {};
+    std::set<int> R_new {}, P_new {}, X_new {};
+    std::set_union(R.begin(),R.end(),v.begin(),v.end(),std::inserter(R_new,R_new.begin()));
+    std::set_intersection(P.begin(),P.end(),Nv.begin(),Nv.end(),std::inserter(P_new,P_new.begin()));
+    std::set_intersection(X.begin(),X.end(),Nv.begin(),Nv.end(),std::inserter(X_new,X_new.begin()));
+    maxClique_tmp = BronKerbosch(R_new,P_new,X_new,edges);
+    P.erase(node);
+    X.insert(node);
 
+    if (maxClique_tmp.size()>max_size) {
+      max_size = maxClique_tmp.size();
+      maxClique = maxClique_tmp;
+    }
+  }
+
+  return maxClique;
 }
