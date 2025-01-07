@@ -3,6 +3,11 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <sstream>
+#include <utility>
+#include <vector>
+#include <algorithm>
+#include <set>
 
 int main(int argc, char* argv[])
 {
@@ -35,19 +40,48 @@ int main(int argc, char* argv[])
 
 	std::string inputStr {};
 
+// read in input file: add nodes, edges
+  std::set<std::pair<int,int>> edges {};
+  std::set<int> nodes {};
 	while (std::getline(inputFile,inputStr))
 	{
-
+    std::stringstream ss {inputStr};
+    std::string num1 {}, num2;
+    int n1 {}, n2 {};
+    getline(ss,num1,'-');
+    getline(ss,num2,'-');
+    n1 = computerHash(num1);
+    n2 = computerHash(num2);
+    edges.insert(std::make_pair(std::min(n1,n2),std::max(n1,n2)));
+    nodes.insert(n1);
+    nodes.insert(n2);
 	}
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
+// for (auto st : nodes) {
+//   std::cout << st << "\n";
+// }
+// for (auto ed : edges) {
+//   std::cout << ed.first << " " << ed.second << "\n";
+// }
 
+// the question here is if we need nodes
+// and what type of graph edges should be
+// potentially we want a multimap where we read in each possible pair of edges for a given starting point
+// and see if the third edge is in the graph
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
+// for each vertex
+// get list of corresponding edges
+// have two iterators, with the second iterator starting immediately after the first iterator
+// get the second value from each of the iterators, and see if the corresponding edge exists
+// if so, we have a 3-clique: check if any of the nodes starts with a 't'
+
+  
 
 
   auto t4 {std::chrono::high_resolution_clock::now()};
@@ -60,4 +94,17 @@ int main(int argc, char* argv[])
 
 
 	return 0;
+}
+
+int computerHash(std::string comp) {
+  char first {comp[0]}, second {comp[1]};
+  int hsh {0};
+  hsh += 26 * (first-'a');
+  hsh += second-'a';
+  return hsh;
+}
+
+bool startsWith_T(int hsh) {
+  if (hsh/26==19) return true;
+  return false;
 }
