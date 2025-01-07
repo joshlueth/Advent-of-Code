@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <array>
+#include <bitset>
 
 int main(int argc, char* argv[])
 {
@@ -57,7 +58,8 @@ int main(int argc, char* argv[])
   std::array<int,N> seq {0};
   for (std::size_t sn {0}; sn<iniSecret.size(); ++sn) {
     int current_price {price(iniSecret[sn])}, old_price {0}, old_price_change_m3 {0}, old_price_change_m2 {0}, old_price_change_m1 {0}, price_change {0};
-    std::array<bool,N> seq_lst {true};
+    std::bitset<N> seq_lst {};
+    seq_lst.set();
     for (int lp {0}; lp<loops; ++lp) {
       evolve(iniSecret[sn]);
 
@@ -70,7 +72,6 @@ int main(int argc, char* argv[])
       price_change = current_price - old_price;
 
       int hsh {sequence_hash(price_change, old_price_change_m1, old_price_change_m2, old_price_change_m3, hsh_base)};
-
       if (lp>=3 && seq_lst[hsh]) {
         seq_lst[hsh] = false;
         seq[hsh] += current_price;
