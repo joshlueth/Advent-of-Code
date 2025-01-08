@@ -8,6 +8,7 @@
 #include <cmath>
 #include <climits>
 #include <algorithm>
+#include <map>
 
 int main(int argc, char* argv[])
 {
@@ -47,41 +48,69 @@ int main(int argc, char* argv[])
 
 	inputFile.close();
 
-  
+// Check printed input:
+// for (auto cd : codes) {
+//   std::cout << cd << "\n";
+// }
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
   std::vector<int> codes_int {};
   for (std::size_t cd {0}; cd<codes.size(); ++cd) {
-    codes_int.push_back(std::stoi(codes[cd].substr(0,codes.size()-1)));
+    codes_int.push_back(std::stoi(codes[cd].substr(0,codes[cd].size()-1)));
   }
 
-// check that the input is correct - it is parsed correctly
+// check that the input is correct - it is parsed correctly:
 // for (std::size_t ts {0}; ts<codes.size(); ++ts) {
 //   std::cout << codes[ts] << " " << codes_int[ts] << "\n";
 // }
 
-  long long complexity {0};
+// note for the cache: we have have robot_kps from 1-24, starting character as one of <>v^A, and paths as one of 
+  std::map<std::tuple<std::string,char,int>,long long> cache {};
+
+  long long complexity_p1 {0};
 
 // solve for each code
-  int bps {0};
+  long long bps {}, robot_dir_keypads {};
+
+  bps = 0;
+  robot_dir_keypads = 2;
   for (std::size_t cd {0}; cd < codes.size(); ++cd) {
     // get code
     std::string code {codes[cd]};
     // find number of button presses (bps)
-    bps = buttonPresses(code);
-// std::cout << bps << "\n";
+    bps = buttonPresses(code, robot_dir_keypads, cache);
     // complexity score is sum of integer product and number of button presses
-    complexity += codes_int[cd] * bps;
+    complexity_p1 += codes_int[cd] * bps;
   }
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
+  long long complexity_p2 {0};
 
+// solve for each code
+  bps = 0;
+  robot_dir_keypads = 25;
+  for (std::size_t cd {0}; cd < codes.size(); ++cd) {
+    // get code
+    std::string code {codes[cd]};
+    // find number of button presses (bps)
+    bps = buttonPresses(code, robot_dir_keypads, cache);
+    // complexity score is sum of integer product and number of button presses
+    complexity_p2 += codes_int[cd] * bps;
+  }
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
-  std::cout << "Sum of code complexities: " << complexity << "\n";
+// note that given the limited amount of robot_kps, starting points, and path sizes, the cache will not take up too much memory
+  std::cout << "Total cache size: " << cache.size() << "\n";
+
+  // for (auto c : cache) {
+  //   std::cout << std::get<0>(c.first) << " " << std::get<1>(c.first) << " " << std::get<2>(c.first) << "\n";
+  // }
+
+  std::cout << "Sum of code complexities (Part 1): " << complexity_p1 << "\n";
+  std::cout << "Sum of code complexities (Part 2): " << complexity_p2 << "\n";
 
 	std::cout << "Program took, in microseconds:" << "\n";
 	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
@@ -89,118 +118,107 @@ int main(int argc, char* argv[])
 	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
 
-
 	return 0;
 }
 
-int buttonPresses(std::string code) {
-  int bps {0};
+long long buttonPresses(std::string code, int robot_kps, std::map<std::tuple<std::string,char,int>,long long>& cache) {
+  long long bps {0};
   // we start at 'A'
   char from {'A'};
   for (auto ch : code) {
     char to {ch};
-    int bp_mv {};
-    bp_mv = firstKP(from, to);
+    long long bp_mv {};
+    bp_mv = numKP(from, to, robot_kps, cache);
     bps += bp_mv;
-
-// std::cout << "move bps: " << bp_mv << "\n";
     from = to;
   }
   return bps;
 }
 
-int firstKP(char from, char to) {
-  int bps {0};
+long long numKP(char from, char to, int robot_kps, std::map<std::tuple<std::string,char,int>,long long>& cache) {
+  long long bps {};
   std::pair<int,int> fromP {}, toP {};
   fromP = buttonKPcoords(from);
   toP = buttonKPcoords(to);
-// std::cout << "from " << from << " to " << to << "\n";
-  bps += secondKP(fromP, toP);
+  bps = numdirKP(fromP, toP, robot_kps, cache);
   return bps;
 }
 
-int secondKP(std::pair<int,int> from, std::pair<int,int> to) {
+long long numdirKP(std::pair<int,int> from, std::pair<int,int> to, int robot_kps, std::map<std::tuple<std::string,char,int>,long long>& cache) {
   // so, here's where the loop actually matters. Everything before this point is fixed
   // we have a fixed beginning and ending on the button keypad, and three nested directional keypads
 
   // given the two coordinates, enumerate every single possible path between them, including the 'A' press
   // make sure that none of the paths cross the empty square
 
-  int bps {INT_MAX};
+  long long bps {LLONG_MAX};
   int distX {to.first - from.first}, distY {to.second - from.second};
   // X,Y euclidean distance -> (X+Y) C X
   int numPaths {factorial(std::abs(distX)+std::abs(distY))/(factorial(std::abs(distX))*factorial(std::abs(distY)))};
   // get each possible path, call subroutine to get required presses on third keypad
   for (int pth {0}; pth<numPaths; ++pth) {
-    int numPresses{0};
+    long long numPresses{0};
     std::string keyPresses {};
     bool emptySquare {};
     emptySquare = getNumPath(keyPresses,from,to,pth,numPaths);
     if (emptySquare) continue;
     keyPresses.push_back('A');
-// std::cout << "2KP " << keyPresses << "\n";
-    numPresses = thirdKP(keyPresses, 'A');
+    // given this sequence of key presses, what key presses does the keypad above require?
+    numPresses = robotKP(keyPresses, 'A', robot_kps-1, cache);
     bps = std::min(bps,numPresses);
   }
-// std::cout << "2KP kps " << bps << "\n";
   return bps;
 }
 
-int thirdKP(std::string keyPresses, char from) {
+long long robotKP(std::string keyPresses, char from, int robot_kps, std::map<std::tuple<std::string,char,int>,long long>& cache) {
+  if (cache.find(std::make_tuple(keyPresses,from,robot_kps))!=cache.end()) {
+    return cache[std::make_tuple(keyPresses,from,robot_kps)];
+  }
   // for keyPresses sequence, get the two characters
-  int bps {INT_MAX};
+  long long bps {LLONG_MAX};
   char to {keyPresses[0]};
   std::pair<int,int> fromP {directionalKPcoords(from)}, toP {directionalKPcoords(to)};
   int distX {toP.first - fromP.first}, distY {toP.second - fromP.second};
   int numPaths {factorial(std::abs(distX)+std::abs(distY))/(factorial(std::abs(distX))*factorial(std::abs(distY)))};
   for (int it {0}; it<numPaths; ++it) {
-// std::cout << "from " << from << " to " << to << " num paths " << numPaths << "\n";
-// std::cout << "it counter " << it << "\n";
-    int bps_tmp {0};
+    long long bps_tmp {0};
     bool emptySquare {};
     std::string myKeyPresses {};
     emptySquare = getDirPath(myKeyPresses, fromP, toP, it, numPaths);
-    // if (emptySquare) std::cout << "emptySquare " << myKeyPresses << "  " << it << "\n";
     if (emptySquare) continue;
     myKeyPresses.push_back('A');
-    bps_tmp += myKP(myKeyPresses);
-// std::cout << "trying recursion " << it << " " << myKeyPresses << " " << bps_tmp << "\n";
+    // if robot_kps is 1, we are on the last keypad - we operate the keypad above, and so can simply take the L1 distance within myKp()
+    if (robot_kps<=1) {
+      bps_tmp += myKP(myKeyPresses);
+    } else {
+      // otherwise, this sequence of key presses has to be done by the robot above
+      bps_tmp += robotKP(myKeyPresses, 'A', robot_kps-1, cache);
+    }
     if (keyPresses.size()!=1) {
-      bps_tmp += thirdKP(keyPresses.substr(1), keyPresses[0]);
+      // since each call of robotKP only goes from the first character (starting with 'A') to the next character, have to call recursively on the same level as well
+      bps_tmp += robotKP(keyPresses.substr(1), keyPresses[0], robot_kps, cache);
     }
     bps = std::min(bps,bps_tmp);
   }
+  cache[std::make_tuple(keyPresses,from,robot_kps)] = bps;
 
   return bps;
 }
 
-// <v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A
-
-int myKP(std::string keyPresses) {
+long long myKP(std::string keyPresses) {
   // for keyPresses sequence, get 1-norm distance between each sequence + the length of the sequence because we need to actually press A
-  int bps {0};
+  long long bps {0};
   char from {'A'};
-// std::cout << "myKeyPresses " << keyPresses << "\n";
   for (std::size_t ky {0}; ky<keyPresses.size(); ++ky) {
     char to {keyPresses[ky]};
     std::pair<int,int> fromP {directionalKPcoords(from)}, toP {directionalKPcoords(to)};
-    int bps_tmp {};
+    long long bps_tmp {};
     bps_tmp = L1_distance(fromP,toP) + 1;
     bps += bps_tmp;
-// std::cout << "bps_tmp on myKP " << bps_tmp << "\n";
     from = to;
   }
   return bps;
 }
-
-// std::string directionalKP(char from, char to) {
-//   std::pair<int,int> fromP {directionalKPcoords(from)}, toP {directionalKPcoords(to)};
-//   std::string path {};
-
-
-//   path += 'A';
-//   return path;
-// }
 
 std::pair<int,int> buttonKPcoords(char loc) {
   std::pair<int,int> coords {};
@@ -313,9 +331,7 @@ bool getNumPath(std::string& keyPresses, std::pair<int,int> from, std::pair<int,
       return false;
     };
     std::next_permutation(keyPresses.begin(), keyPresses.end(), xy_compare);
-    // std::cout << "permutation " << keyPresses << "\n";
   }
-
 
   // check if we cross the empty square
   bool emptySquare {false};
@@ -349,7 +365,6 @@ bool getDirPath(std::string& keyPresses, std::pair<int,int> from, std::pair<int,
       return false;
     };
     std::next_permutation(keyPresses.begin(), keyPresses.end(), xy_compare);
-    // std::cout << "permutation " << keyPresses << "\n";
   }
 
   // check if we cross the empty square
@@ -358,8 +373,6 @@ bool getDirPath(std::string& keyPresses, std::pair<int,int> from, std::pair<int,
   if ((to.first==0 && from.second==0) && pth==0) emptySquare = true;
   return emptySquare;
 }
-
-
 
 // Writing out exactly what I need to do:
 // for each sequence of instructions, look at a specific code
