@@ -125,20 +125,35 @@ int main(int argc, char* argv[]) {
   }
   std::sort(solution_ordering.begin(),solution_ordering.end());
 
-  for (auto en : solution_ordering) {
-    std::cout << en << " \n";
-  }
+  // for (auto en : solution_ordering) {
+  //   std::cout << en << " \n";
+  // }
 
   long long number {0};
   for (std::size_t it {0}; it<solution_ordering.size(); ++it) {
-    std::cout << nodes[solution_ordering[it]] << " " << it << " " << (static_cast<long long>(nodes[solution_ordering[it]]) << it) << "\n";
     number += static_cast<long long>(nodes[solution_ordering[it]]) << it;
   }
 
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
+  std::vector<std::string> xOrdering {}, yOrdering {};
+  for (auto en : ordering) {
+    if (en[0]=='x') {
+      xOrdering.push_back(en);
+    } else if (en[0]=='y') {
+      yOrdering.push_back(en);
+    }
+  }
+  std::sort(xOrdering.begin(),xOrdering.end());
+  std::sort(yOrdering.begin(),yOrdering.end());
 
+  long long x {0}, y {0};
+  for (std::size_t it {0}; it<xOrdering.size(); ++it) {
+    x += static_cast<long long>(nodes[xOrdering[it]]) << it;
+    y += static_cast<long long>(nodes[yOrdering[it]]) << it;
+  }
+  std::cout << "x: " << x << " y: " << y << " x+y: " << x+y << "\n";
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
@@ -177,9 +192,9 @@ std::vector<std::string> topological_sort (std::set<std::pair<std::string,std::s
     L.push_back(*nd);
     S.erase(nd);
   }
-  std::cout << "L\n";
-  for (auto en : L) std::cout << en << " ";
-  std::cout << "\n";
+  // std::cout << "L\n";
+  // for (auto en : L) std::cout << en << " ";
+  // std::cout << "\n";
   return L;
 }
 
@@ -198,7 +213,6 @@ int single_gate(int p1, int p2, std::string gate_type) {
   if (gate_type=="OR") out = std::max(p1,p2); // or gate via max
   else if (gate_type=="AND") out = p1 * p2; // and gate via multiplication
   else if (gate_type=="XOR") out = (p1+p2) % 2; // xor gate via remainder (modulus)
-std::cout << p1 << " " << p2 << " " << gate_type << " " << out << "\n";
 
   return out;
 }
