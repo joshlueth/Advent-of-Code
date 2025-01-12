@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <variant>
 
+void (*rotate) (int&, int&, char&);
+
 int main()
 {
 	std::string fileName {"input.txt"};
@@ -28,6 +30,10 @@ int main()
 
 	inputFile.close();
 
+  rotate = rotate_right;
+  // rotate_right normally
+  // rotate_left if we want to check the guard turning left automatically
+
 // get index of current position (^) in row, col
 	int row {0}, col {0};
 	for (auto r : map) {
@@ -39,12 +45,11 @@ int main()
 		row++;
 	}
 
-
 // set count, change '^' so we start at the correct point
 	int count {1}, numO{0};
 	map[row][col] = 'X';
 	row -= 1;
-	int nrows {map.size()}, ncols {map[0].size()};
+	std::size_t nrows {map.size()}, ncols {map[0].size()};
 	char dir {'u'};
 	while (!isOut(row,nrows-1) && !isOut(col,ncols-1)) {
 		char* current {&map[row][col]};
@@ -105,7 +110,7 @@ void move (int &row, int &col, char dir) {
 	}
 }
 
-void rotate (int &row, int &col, char &dir) {
+void rotate_right (int &row, int &col, char &dir) {
 		switch (dir) {
 		case 'u': {
 			dir = 'r';
@@ -133,10 +138,38 @@ void rotate (int &row, int &col, char &dir) {
 	}
 }
 
+void rotate_left (int &row, int &col, char &dir) {
+		switch (dir) {
+		case 'u': {
+			dir = 'l';
+			move(row,col,'d');
+			break;
+		}
+		case 'r': {
+			dir = 'u';
+			move(row,col,'l');
+			break;
+		}
+		case 'd': {
+			dir = 'r';
+			move(row,col,'u');
+			break;		
+		}
+		case 'l': {
+			dir = 'd';
+			move(row,col,'r');
+			break;
+		}
+		default: {
+			std::cerr << "Given direction was not valid: " << dir << "\n";
+		}
+	}
+}
+
 int checkObstruction (std::vector<std::vector<char>> map, int row, int col, char dir) {
 	// add obstacle
 	map[row][col] = '#';
-	int nrows {map.size()}, ncols {map[0].size()};
+	std::size_t nrows {map.size()}, ncols {map[0].size()};
 	int rotateCount {0};
 	while (!isOut(row,nrows-1) && !isOut(col,ncols-1)) {
 		char* current {&map[row][col]};
