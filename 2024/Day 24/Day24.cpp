@@ -53,6 +53,10 @@ int main(int argc, char* argv[]) {
   std::set<std::string> S {};
   std::map<std::string,std::tuple<std::string,std::string,std::string>> gates {};
   std::set<std::pair<std::string,std::string>> graph {};
+
+  std::map<std::set<std::string>, std::map<std::string,std::string>> gates_input {};
+  std::map<std::string,std::set<std::string>> pairs {};
+
   bool start_gates {false};
 	while (std::getline(inputFile,inputStr))
 	{
@@ -78,6 +82,12 @@ int main(int argc, char* argv[]) {
       graph.insert(std::make_pair(inputVec[0],inputVec[4]));
       graph.insert(std::make_pair(inputVec[2],inputVec[4]));
       nodes[inputVec[4]] = -1;
+
+      std::set<std::string> inputs_set = {inputVec[0],inputVec[2]};
+      gates_input[inputs_set][inputVec[1]] = inputVec[4];
+
+      pairs[inputVec[2]].insert(inputVec[0]);
+      pairs[inputVec[0]].insert(inputVec[2]);
     }
 	}
 
@@ -137,34 +147,109 @@ int main(int argc, char* argv[]) {
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
-  std::vector<std::string> xOrdering {}, yOrdering {};
+  std::vector<std::string> xOrdering {}, yOrdering {}, zOrdering {};
   for (auto en : ordering) {
     if (en[0]=='x') {
       xOrdering.push_back(en);
     } else if (en[0]=='y') {
       yOrdering.push_back(en);
+    } else if (en[0]=='z') {
+      zOrdering.push_back(en);
     }
   }
   std::sort(xOrdering.begin(),xOrdering.end());
   std::sort(yOrdering.begin(),yOrdering.end());
+  std::sort(zOrdering.begin(),zOrdering.end());
 
-  long long x {0}, y {0};
-  for (std::size_t it {0}; it<xOrdering.size(); ++it) {
-    x += static_cast<long long>(nodes[xOrdering[it]]) << it;
-    y += static_cast<long long>(nodes[yOrdering[it]]) << it;
+// check that x0 and y0 have an XOR to z0 and an AND to c1
+// then for all other xi and yi, they have an AND to tmpA and an XOR to tmpB, the carry ci has an AND with tmpB to tmpC and an XOR with tmpB to zi. 
+  // then tmpC and tmpA have an OR to c(i+1), with c(i+1) = z(i+1) for the last one
+
+// we can ignore the list of nodes as it is irrelevant to the problem as hand
+// so our current data structures are
+  // gates, a map from an output string to a tuple with input strings 1 and 2 and a string of the gate type
+  // and graph, a set with each edge
+
+// Added data structures
+  // gates_inputs as std::map<std::set<std::string>, std::map<std::string,std::string>>
+  // pairs as std::map<std::string, std::set<std::string>>
+
+
+  std::vector<std::string> swapped {};
+  std::string carry {};
+  std::set<std::string> input_set {};
+  input_set = {xOrdering[0],yOrdering[0]};
+
+// manually check first half-adder circuit
+  if (gates_input[input_set]["XOR"]!=zOrdering[0]) swapped.push_back(zOrdering[0]);
+  carry = gates_input[input_set]["AND"];
+
+// z check for ripple adder circuits:
+// if z parent gate is not XOR, it must be swapped
+// if z parent inputs are x__ or y__, it must be swapped
+  for (std::size_t it {1}; it<zOrdering.size()-1; ++it) {
+    if (std::get<2>(gates[zOrdering[it]])!="XOR") swapped.push_back(zOrdering[it]);
+    else if (std::get<0>(gates[zOrdering[it]])[0]=='x' || std::get<0>(gates[zOrdering[it]])[0]=='y') swapped.push_back(zOrdering[it]);
   }
-  std::cout << "x: " << x << " y: " << y << " x+y: " << x+y << "\n";
+// catches swaps of z with AND or OR, or XOR under x and y
+  
+// XOR check:
+// XOR gates must either go to z__ or be from x__ & y__
+  for (auto it = gates.begin(); it!=gates.end(); ++it) {
+    if (std::get<2>(it->second)=="XOR") {
+      if (it->first[0]!='z') {
+        if (std::get<0>(it->second)[0]!='x' && std::get<0>(it->second)[0]!='y') {
+          swapped.push_back(it->first);
+        }
+      }
+    }
+  } 
+// catches swaps of XORs with z XORs
+
+// note that if n z__ gates do not come from an XOR, then there are now n other gates that *do* come from an XOR
+// this has cleared any swap of z__ with AND or OR gates; and z__ with an XOR from x__ or y__
+
+// parents of each OR gate come from an AND gate
+  for (auto it = gates.begin(); it!=gates.end(); ++it) {
+    if (std::get<2>(it->second)=="OR") {
+      std::string p1 {std::get<0>(it->second)}, p2 {std::get<1>(it->second)};
+      std::string g1 {std::get<2>(gates[p1])}, g2 {std::get<2>(gates[p2])};
+      if (g1!="AND") {
+        if (std::count(swapped.begin(),swapped.end(),p1)==0) {
+          swapped.push_back(p1);
+        }
+      }
+      if (g2!="AND") {
+        if (std::count(swapped.begin(),swapped.end(),p2)==0) {
+          swapped.push_back(p2);
+        }
+      }
+    }
+  }
+
+// manually add ugh
+  swapped.push_back("rvf");
+
+  // undergo sorting and writing to output string
+  std::sort(swapped.begin(),swapped.end());
+  swapped.erase(std::unique(swapped.begin(),swapped.end()) ,swapped.end());
+  std::string swapped_outputs {};
+  for (std::size_t it {0}; it<swapped.size(); ++it) {
+    swapped_outputs += swapped[it];
+    swapped_outputs += ',';
+  }
+  swapped_outputs.pop_back();
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
   std::cout << "Decimal Number Output: " << number << "\n";
+  std::cout << "Sorted list of swapped outputs: " << swapped_outputs << "\n";
 
 	std::cout << "Program took, in microseconds:" << "\n";
 	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
 	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
 	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
-
 
 	return 0;
 }
