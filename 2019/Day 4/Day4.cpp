@@ -3,48 +3,45 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <algorithm>
 
-int main(int argc, char* argv[])
+int main()
 {
 
 // argc is the number of command line arguments
 // argv is the value of command line arguments
 // currently accept argc==1 (no additional) or argc==2 (1 additional, filename w/ no .txt)
 
-  std::string fileName {"sample.txt"}, extensionDefault {".txt"};
-  if (argc<=1) {
-  } else if (argc==2) {
-    fileName = argv[1];
-    if (fileName.find('.')==std::string::npos) {
-      fileName += extensionDefault;
-    } 
-  } else {
-    std::cerr << "Received " << argc-1 << " additional command line arguments" << "\n";
-    std::cerr << "Only accepts up to 1 additional argument:" << "\n";
-    std::cerr << "  input filename (default \"" << fileName << "\", extension defaults to \"" << extensionDefault << "\")" << "\n";
-  }
-
-	auto t1 {std::chrono::high_resolution_clock::now()};
-
-	std::ifstream inputFile {fileName};
-	if (!inputFile)
-	{
-		std::cerr << "Input file \"" << fileName << "\" could not be opened\n";
-		return 1;
-	}
-
-	std::string inputStr {};
-
-	while (std::getline(inputFile,inputStr))
-	{
-
-	}
-
-	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
-
+  std::string start {"372037"}, finish {"905157"};
+  int Nsol1 {0}, Nsol2 {0};
+  for (int i {std::stoi(start)}; i<=std::stoi(finish); i++) {
+    std::string str{std::to_string(i)}, str2{std::to_string(i)};
+    std::sort(str.begin(),str.end());
+    if (str != str2) continue;
+    int count = 0;
+    char prev = '\0';
+    bool is_two = false, g_two = false;
+    for (char c : str) {
+      if (c == prev) {
+        ++count;
+      } else {
+        prev = c;
+        g_two = g_two || count >= 2;
+        is_two = is_two || count == 2;
+        count = 1;
+      }
+    }
+    g_two = g_two || count >= 2;
+    is_two = is_two || count == 2;
+    if (g_two) Nsol1 +=1;
+    if (is_two) Nsol2 += 1;
+  }
+  
+  std::cout << Nsol1 << "\n";
+  std::cout << Nsol2 << "\n";
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
@@ -53,8 +50,7 @@ int main(int argc, char* argv[])
   auto t4 {std::chrono::high_resolution_clock::now()};
 
 	std::cout << "Program took, in microseconds:" << "\n";
-	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
-	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
+	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
 
