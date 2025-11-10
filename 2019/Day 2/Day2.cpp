@@ -3,6 +3,31 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <vector>
+#include <sstream>
+#include <cstdlib>
+
+void IntCode(std::vector<int>& Code) {
+  bool stop {false};
+  for (std::size_t pos {0}; pos<Code.size(); pos+=4) {
+    if (stop) break;
+    switch (Code[pos]) {
+      case 1:
+        Code[(std::size_t)Code[pos+3]] = Code[(std::size_t)Code[pos+1]]+Code[(std::size_t)Code[pos+2]];
+        break;
+      case 2:
+        Code[(std::size_t)Code[pos+3]] = Code[(std::size_t)Code[pos+1]]*Code[(std::size_t)Code[pos+2]];
+        break;
+      case 99:
+        stop = true;
+        break;
+      default:
+        std::cerr << "Not a valid code" << std::endl;
+        std::exit(1);
+    }
+  }
+  return;
+}
 
 int main(int argc, char* argv[])
 {
@@ -35,20 +60,49 @@ int main(int argc, char* argv[])
 
 	std::string inputStr {};
 
+  std::vector<int> codesIni{};
 	while (std::getline(inputFile,inputStr))
 	{
-
+    std::stringstream ss(inputStr);
+    std::string token{};
+    while (std::getline(ss,token,',')) {
+      if (!token.empty()) {
+        codesIni.push_back(std::stoi(token));
+      }
+    }
 	}
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
-
+  std::vector<int> codes {codesIni};
+  codes[1] = 12;
+  codes[2] = 2;
+  IntCode(codes);
+  std::cout << codes[0] << std::endl;
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
+  std::size_t ans{};
+  for (std::size_t noun {0}; noun<100; noun +=1) {
+    for (std::size_t verb {0}; verb<100; verb +=1) {
+      std::vector<int> codesHere {codesIni};
+      codesHere[1] = (int)noun;
+      codesHere[2] = (int)verb;
+      IntCode(codesHere);
+      // std::cout << noun << " " << verb << " " << codesHere[0] << std::endl;
+      if (codesHere[0]==19690720) {
+        // std::cout << noun << " " << verb << std::endl;
+        ans = 100*noun + verb;
+        goto found;
+      }
+    }
+  }
 
+found:
+  std::cout << ans << std::endl;
+  // 78, 70
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
