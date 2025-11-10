@@ -52,19 +52,23 @@ set nxtDay_str_cpp=!nxtDay_str!.cpp
 REM create filelist and copy directory
 set fileList=!temp_str_cpp! !temp_str_h! Makefile
 REM check that the respective directories and files exist and are empty/contain the necessary files
-if exist ".\!nxtDay_strsp!\" (
-  dir /b /s /a ".\!nxtDay_strsp!\" | findstr .>nul && (
-    echo Folder "!nxtDay_strsp!" is not empty
-    choice /C YN /M Continue?
-    set choice_level=!errorlevel!
-    if !choice_level!==2 (
-      echo Canceled batch file execution
-      exit /b REM chose n
-    )
+if not exist ".\!nxtDay_strsp!\" (
+  choice /C YN /M Directory does not exist: Create directory?
+  set choice_level=!errorlevel!
+  if !choice+level!==2 (
+    echo Canceled batch file execution
+    exit /b REM chose n
   )
-) else (
-  echo "!nxtDay_strsp!" does not exist
-  exit /b
+  mkdir ".\!nxDay_strsp!\"
+)
+dir /b /s /a ".\!nxtDay_strsp!\" | findstr .>nul && (
+  echo Folder "!nxtDay_strsp!" is not empty
+  choice /C YN /M Continue?
+  set choice_level=!errorlevel!
+  if !choice_level!==2 (
+    echo Canceled batch file execution
+    exit /b REM chose n
+  )
 )
 
 for %%f in (!filelist!) do xcopy .\%%f .\"!nxtDay_strsp!" >> NUL
