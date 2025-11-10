@@ -3,6 +3,11 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <vector>
+
+int getFuel(int mass) {
+  return (mass/3-2);
+}
 
 int main(int argc, char* argv[])
 {
@@ -34,21 +39,36 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
+  std::vector<int> masses {};
 
 	while (std::getline(inputFile,inputStr))
 	{
-
+    masses.push_back(std::stoi(inputStr));
 	}
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
+  int totalFuel {0};
+  for (std::size_t i{0}; i<masses.size(); ++i)
+    totalFuel += getFuel(masses[i]);
 
+  std::cout << totalFuel << std::endl;
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
-
+  int totalFuel2 {0}, currentMass {};
+  for (std::size_t i{0}; i<masses.size(); ++i) {
+    currentMass = masses[i];
+    int currentFuel {};
+    do {
+      currentFuel = getFuel(currentMass);
+      totalFuel2 += std::max(currentFuel,0);
+      currentMass = currentFuel;
+    } while (currentMass > 0);
+  }
+  std::cout << totalFuel2 << std::endl;
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
