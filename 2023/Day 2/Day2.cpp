@@ -3,6 +3,14 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <sstream>
+#include <unordered_map>
+
+#define RED 0
+#define GREEN 1
+#define BLUE 2
+
+std::unordered_map<std::string,int> colors { {"red",RED},{"green",GREEN},{"blue",BLUE}};
 
 int main(int argc, char* argv[])
 {
@@ -34,24 +42,55 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
-
+  std::string game{}, show{}, item{};
+  std::tuple<int,int,int> max {12,13,14};
+  int allowable {0}, counter{1}, minimum {0};
 	while (std::getline(inputFile,inputStr))
 	{
-
-	}
+    bool possible=true;
+    int minR=0, minG=0, minB=0;
+    game = inputStr.substr(inputStr.find(':',0)+1);
+    std::stringstream ss {game};
+    while (std::getline(ss,show,';')) {
+      std::stringstream ss2(show);
+      while(std::getline(ss2,item,',')) {
+        std::string col {}, num {};
+        std::stringstream ss3(item.substr(1));
+        std::getline(ss3,num,' ');
+        std::getline(ss3,col,' ');
+        switch (colors[col]) {
+          case RED:
+            minR = std::max(minR,std::stoi(num));
+            if (std::stoi(num)>std::get<RED>(max)) possible = false;
+            break;
+          case GREEN:
+            minG = std::max(minG,std::stoi(num));
+            if (std::stoi(num)>std::get<GREEN>(max)) possible = false;
+            break;
+          case BLUE:
+            minB = std::max(minB,std::stoi(num));
+            if (std::stoi(num)>std::get<BLUE>(max)) possible = false;
+            break;
+        }
+      }
+    }
+    if (possible) allowable+=counter;
+    minimum += minR*minG*minB;
+    counter++;
+  }
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
 
-
   auto t3 {std::chrono::high_resolution_clock::now()};
-
 
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
+  std::cout << allowable << "\n";
+  std::cout << minimum << "\n";
 	std::cout << "Program took, in microseconds:" << "\n";
 	std::cout << "  Total Time:               " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t1).count() << "\n";
 	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
