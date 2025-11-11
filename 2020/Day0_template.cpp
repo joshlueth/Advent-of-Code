@@ -1,12 +1,8 @@
-#include "Day5.h"
-#include "IntCode.hpp"
+#include "Day0_template.h"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <chrono>
-#include <cstdlib>
-#include <vector>
-#include <sstream>
 
 int main(int argc, char* argv[])
 {
@@ -38,35 +34,21 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
-  std::vector<int> codesIni {};
+
 	while (std::getline(inputFile,inputStr))
 	{
-    std::stringstream ss(inputStr);
-    std::string token{};
-    while (std::getline(ss,token,',')) {
-      if (!token.empty()) {
-        codesIni.push_back(std::stoi(token));
-      }
-    }
+
 	}
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
-  std::vector<int> codes1 = codesIni;
-  std::vector<int> output = IntCode(codes1,1);
-  for (std::size_t i=0; i<output.size(); i++) {
-    std::cout << output[i] << "\n";
-  }
+
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
-  std::vector<int> codes2 = codesIni;
-  output = IntCode(codes2,5);
-  for (std::size_t i=0; i<output.size(); i++) {
-    std::cout << output[i] << "\n";
-  }
+
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 

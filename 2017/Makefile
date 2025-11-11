@@ -2,11 +2,10 @@
 .SUFFIXES: # remove default suffix rules
 
 CC = g++ # fortran compiler
-CFLAGS = -std=c++20 -Wall -Weffc++ -Wextra -Werror -ggdb -Wconversion -Wsign-conversion #-Wno-narrowing  (-Wno-narrowing #)
+CFLAGS = -Wall -Weffc++ -Wextra -Werror -ggdb -Wconversion -Wsign-conversion #-Wno-narrowing  (-Wno-narrowing #)
 CFLAGS_RELEASE = -O3 -DNDEBUG
 
-MAIN = Day5.cpp
-FILES = IntCode.cpp
+MAIN = Day0_template.cpp
 EXECUTABLE = aoc.exe
 
 # should cause clean to be system-agnostic
@@ -15,16 +14,13 @@ ifdef OS
 RM = del
 endif
 
-%.hpp: %.cpp
-Day5.cpp: IntCode.hpp
-
 all: debug
 
 debug:
-	@$(CC) $(CFLAGS) $(MAIN) $(FILES) -o $(EXECUTABLE)
+	@$(CC) $(CFLAGS) $(MAIN) -o $(EXECUTABLE)
 
 release: 
-	@$(CC) $(CFLAGS_RELEASE) $(MAIN) $(FILES) -o $(EXECUTABLE)
+	@$(CC) $(CFLAGS_RELEASE) $(MAIN) -o $(EXECUTABLE)
 
 clean: 
 	$(RM) *.o *.exe *.mod $(TARGET)
