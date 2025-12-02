@@ -36,11 +36,13 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
-  std::vector<std::string> inputs {};
+  std::vector<int> inputs {};
 
 	while (std::getline(inputFile,inputStr))
 	{
-    inputs.push_back(inputStr);
+    int rot_bv {std::stoi(inputStr.substr(1))};
+    if (inputStr[0]=='L') rot_bv=-rot_bv;
+    inputs.push_back(rot_bv);
 	}
 
 	inputFile.close();
@@ -50,15 +52,8 @@ int main(int argc, char* argv[])
   int counter1 {0};
   int dial {50};
   for (std::size_t i=0; i<inputs.size(); i++) {
-    char dir {inputs[i][0]};
-    int rot {std::stoi(inputs[i].substr(1))};
-    if (dir=='L') {
-      rot = -rot;
-    } else if (dir=='R') {} else {
-      std::cerr << "Must rotate either left (L) or right (R)\n";
-      return 0;
-    }
-    dial = (dial + rot);
+    int rot {inputs[i]};
+    dial += rot;
     if (dial % 100==0) counter1 += 1;
   }
 
@@ -66,37 +61,26 @@ int main(int argc, char* argv[])
 
   int counter2 {0};
   int dial_new {0};
+  int h_i{0};
+  int h_f{0};
   dial = 50;
   for (std::size_t i=0; i<inputs.size(); i++) {
-    char dir {inputs[i][0]};
-    int rot {std::stoi(inputs[i].substr(1))};
-    if (dir=='L') {
-      rot = -rot;
-    } else if (dir=='R') {} else {
-      std::cerr << "Must rotate either left (L) or right (R)\n";
-      return 0;
-    }
+    int rot {inputs[i]};
     // we have initial value and subsequent value.
     // we want to determine the amount of hundreds crossed over
     // different buckets: -199:-101; -100; -99:-1; 0; 1:99; 100; 101:199; 200; 201:299; 300
     // if we rotate to the right, each number divisible by zero is associated with the bucket to the right
     // if we rotate to the left, each number divisible by zero is associated with the bucket to the left
     dial_new = dial + rot;
-
     if (rot>0) {
-      int h_i = static_cast<int>(std::floor(dial/100.));
-      int h_f = static_cast<int>(std::floor(dial_new/100.));
-      counter2 += std::abs(h_f-h_i);
-      // std::cout << dial << " " << dial_new << " " << h_i << " " << h_f << " " << abs(h_f-h_i) << " " << counter2 << "\n";
+      h_i = static_cast<int>(std::floor(dial/100.));
+      h_f = static_cast<int>(std::floor(dial_new/100.));
     } else {
-      int h_i = static_cast<int>(std::ceil(dial/100.));
-      int h_f = static_cast<int>(std::ceil(dial_new/100.));
-      counter2 += std::abs(h_f-h_i);
-      // std::cout << dial << " " << dial_new << " " << h_i << " " << h_f << " " << abs(h_f-h_i) << " " << counter2 << "\n";
+      h_i = static_cast<int>(std::ceil(dial/100.));
+      h_f = static_cast<int>(std::ceil(dial_new/100.));
     }
-
+    counter2 += std::abs(h_f-h_i);
     dial = dial_new; 
-
   }
 
   auto t4 {std::chrono::high_resolution_clock::now()};
@@ -110,7 +94,6 @@ int main(int argc, char* argv[])
 	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
 	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
-
 
 	return 0;
 }
