@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 // argc is the number of command line arguments
 // argv is the value of command line arguments
 // currently accept argc==1 (no additional) or argc==2 (1 additional, filename w/ no .txt)
-
+ 
   std::string fileName {"sample.txt"}, extensionDefault {".txt"};
   if (argc<=1) {
   } else if (argc==2) {
@@ -123,7 +123,6 @@ int main(int argc, char* argv[])
 	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
 	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
-
 
 	return 0;
 }
