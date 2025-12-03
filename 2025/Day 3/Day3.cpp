@@ -29,9 +29,9 @@ long long joltage_ini(const std::string bat) {
   return std::stoll(std::string(1,max)+max2);
 }
 
-void first_max(const std::string str, char& val, int& loc) {
+void first_max(const std::string str, char& val, std::size_t& loc) {
   val = '0';
-  int loc_store = loc;
+  std::size_t loc_store = loc;
   for (std::size_t i=0; i<str.size(); i++) {
     if (str[i]>val) {
       val = str[i];
@@ -47,10 +47,10 @@ void first_max(const std::string str, char& val, int& loc) {
 // i-1 is the amount we have to exlude from the end
 // 
 
-long long joltage(const std::string bat, const int num) {
+long long joltage(const std::string bat, const std::size_t num) {
   std::string max="";
   char next;
-  int ss_start{0};
+  std::size_t ss_start{0};
   for (std::size_t i=num; i>0; i--) {
     // we initially want to find the maximum number in the substr beginning at ss_start
     // we want to exclude the (i-1) characters at the end of the string and the (ss_start) characters at the beginning

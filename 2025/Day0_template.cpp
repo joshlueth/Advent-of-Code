@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
+  int part1{0}, part2{0};
 
 	while (std::getline(inputFile,inputStr))
 	{
@@ -58,6 +59,8 @@ int main(int argc, char* argv[])
 	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
 
+  std::cout << "\nPart 1: " << part1 << "\n";
+  std::cout << "Part 2: " << part2 << "\n\n";
 
 	return 0;
 }
