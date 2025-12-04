@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
 
   std::cout << "\nPart 1: " << part1 << "\n";
-  std::cout << "Part 2: " << part2 << "\n\n";
+  std::cout << "Part 2: " << part2 << "\n";
 
 	return 0;
 }
