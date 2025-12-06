@@ -3,7 +3,8 @@ program main
   INTEGER,PARAMETER :: ll = SELECTED_INT_KIND(25)
   INTEGER,PARAMETER :: BP = SELECTED_REAL_KIND(15)
 
-  REAL(KIND=BP) :: start, finish
+  INTEGER(KIND=BP) :: start, finish
+  REAL(KIND=BP) :: start_r, finish_r
 
   CHARACTER(LEN=:),ALLOCATABLE :: arr(:)
   CHARACTER(LEN=:),ALLOCATABLE :: fn
@@ -14,7 +15,8 @@ program main
   INTEGER(KIND=ll) :: IO, ios, sz, col, it, it2, pos, new_pos, tmp, offset
 
 
-  CALL cpu_time(start)
+  CALL system_clock(start)
+  CALL cpu_time(start_r)
 
   fn = "input.txt"
 
@@ -25,7 +27,7 @@ program main
     READ(IO,'(A)',iostat=ios) input
     IF (is_iostat_end(ios)) EXIT
     col = col+1
-    sz = MAX(LEN(input),0)
+    sz = MAX(LEN(TRIM(input)),sz)
   END DO
   REWIND(IO)
   ALLOCATE(CHARACTER(LEN=sz) :: arr(1:col))
@@ -51,7 +53,7 @@ program main
     DO it=1,col-1
       READ(arr(it)(pos:new_pos-1),'(i10)') tmp
       IF (arr(col)(pos:pos).eq."*") THEN
-        number = number * tmp
+        number = number * MAX(tmp,1)
       ELSE
         number = number + tmp
       END IF
@@ -80,7 +82,6 @@ program main
         END DO
         READ(tmp_str,'(i10)') tmp
       END BLOCK
-      IF (tmp.eq.0) EXIT
       IF (arr(col)(pos:pos).eq."*") THEN
         number = number * tmp
       ELSE
@@ -91,9 +92,14 @@ program main
     pos = new_pos
   END DO
 
-  CALL cpu_time(finish)
+  CALL cpu_time(finish_r)
+  CALL system_clock(finish)
+  CALL system_clock(count_rate=tmp)
 
-  PRINT *, "Time (s): ", finish-start
+  PRINT *, "Time (s):   ", finish_r-start_r
+  PRINT *, "Time (sys): ", finish-start
+  PRINT *, "Time (sys): ", (finish-start)/REAL(tmp,KIND=BP)
+  PRINT *, tmp
   PRINT *, "Part 1: ", part1
   PRINT *, "Part 2: ", part2
 

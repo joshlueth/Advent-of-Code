@@ -24,48 +24,77 @@ std::vector<std::string> transpose(const std::vector<std::string>& v) {
   std::string ops {v.back()};
   std::size_t pos{ops.find_first_not_of(" ",0)}, new_pos{0};
   std::size_t mx{0};
-  do {
+  std::size_t op_count {1};
+  while(true) {
     new_pos = ops.find_first_not_of(" ",pos+1);
-    mx = std::max(mx,new_pos-pos);
-    pos = ops.find_first_not_of(" ",new_pos+1);
-  } while (pos!=std::string::npos);
-
-  // default before inversion
-  std::vector<std::string> result(mx,std::string(cols-1,'\0'));
-
-  for (std::size_t )
-
-  for (std::size_t opi{0}; opi<result.back().size(); opi+=mx) {
-    result.back()[opi] = 
+    if (new_pos==std::string::npos) {
+      new_pos = ops.size();
+      mx = std::max(mx,new_pos-pos);
+      break;
+    }
+    mx = std::max(mx,new_pos-pos-1);
+    pos = new_pos;
+    op_count++;
   }
 
-  // return result string!
+  // default before inversion
+  std::vector<std::string> result(mx+1,std::string(op_count*rows,' '));
+  
+  bool exit{false};
+  std::size_t move{0};
+  pos = ops.find_first_not_of(" ",0);
+  while (!exit) {
+    new_pos = ops.find_first_not_of(" ",pos+1);
+    if (new_pos==std::string::npos) {
+      new_pos = ops.size()+1;
+      exit = true;
+    }
+    // std::cout << pos << " " << new_pos << "\n";
+    for (std::size_t seq=0; seq<rows-1; seq++) {
+      for (std::size_t across=0; across<new_pos-pos-1; across++) {
+        result[across][seq+move] = v[seq][across+pos];
+      }
+    }
+    // set operators
+    result[mx][move] = v[rows-1][pos];
+    move += rows;
+    pos = new_pos;
+  }
+
   return result;
 }
 
 ll cephalopod_math(const std::vector<std::string>& inp) {
+  std::cout << "ceph\n";
   std::vector<int> numbers {};
   std::vector<std::size_t> flatsizing;
-  for (std::size_t i=0; i<inp.size()-1; i++) {
-    std::string nb=inp[i];
-    std::size_t pos{nb.find_first_not_of(" ",0)}, new_pos{0};
-    flatsizing.push_back(0);
-    do {
-      new_pos = nb.find(" ",pos);
-      numbers.push_back(std::stoi(nb.substr(pos,new_pos-pos)));
-      flatsizing.back()++; 
-      pos = nb.find_first_not_of(" ",new_pos);
-    } while (pos!=std::string::npos); 
-    if (flatsizing[i]!=flatsizing[0]) {
-      std::cerr << "arrays are different lengths...\n";
+  std::string ops_fd {inp.back()};
+  bool exit2 {false};
+  std::size_t pos{ops_fd.find_first_not_of(" ",0)}, new_pos{0};
+  while (!exit2) {
+    new_pos = ops_fd.find_first_not_of(" ",pos+1);
+    if (new_pos==std::string::npos) {
+      exit2 = true;
+      new_pos = ops_fd.size();
     }
+    for (std::size_t down{0}; down<inp.size()-1;down++) {
+      if (inp[down].substr(pos,new_pos-pos).find_first_not_of(" ")==std::string::npos) {
+        if (ops_fd[pos]=='*') {
+          numbers.push_back(1);
+        } else {
+          numbers.push_back(0);
+        }
+      } else {
+        numbers.push_back(std::stoi(inp[down].substr(pos,new_pos-pos)));
+      }
+    }
+    pos = new_pos;
   }
-  std::size_t flatsz{flatsizing[0]};
 
   // similarly, get each operator
   std::vector<char> op{};
   std::string ops=inp[inp.size()-1];
-  std::size_t pos{ops.find_first_not_of(" ",0)};
+  pos = ops.find_first_not_of(" ",0);
   do {
     op.push_back(ops[pos]);
     pos = ops.find_first_not_of(" ",pos+1);
@@ -80,7 +109,7 @@ ll cephalopod_math(const std::vector<std::string>& inp) {
     } else {
       prob = 0;
     }
-    for (std::size_t getn{p}; getn<numbers.size(); getn+=flatsz) {
+    for (std::size_t getn{p*(inp.size()-1)}; getn<(p+1)*(inp.size()-1); getn++) {
       int num{numbers[getn]};
       if (op[p]=='*') {
         prob *= num;
@@ -137,7 +166,6 @@ int main(int argc, char* argv[])
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
   part1 = cephalopod_math(inp);
-  std::cout << part1 << "\n";
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
