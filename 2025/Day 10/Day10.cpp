@@ -1,14 +1,9 @@
-#include "Day9.h"
+#include "Day10.h"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <chrono>
 #include <vector>
-#include <algorithm>
-
-bool sz_max(std::pair<long long,std::pair<std::size_t,std::size_t>>& a, std::pair<long long,std::pair<std::size_t,std::size_t>>& b) {
-  return a.first>b.first;
-}
 
 int main(int argc, char* argv[])
 {
@@ -40,41 +35,69 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
-  long long part1{0}, part2{0};
+  int part1{0}, part2{0};
 
-  std::vector<std::pair<int,int>> tiles{};
+  std::vector<std::vector<bool>> on {};
+
+  std::vector<std::vector<int>> joltage {};
 
 	while (std::getline(inputFile,inputStr))
 	{
-    std::size_t pos {inputStr.find_first_of(',')};
-    tiles.push_back(std::make_pair(2*std::stoi(inputStr.substr(0,pos)),2*std::stoi(inputStr.substr(pos+1))));
+    std::size_t bracketL {inputStr.find_first_of('[')};
+    std::size_t bracketR {inputStr.find_first_of(']')};
+    std::size_t braceL {inputStr.find_first_of('{')};
+    std::size_t braceR {inputStr.find_first_of('}')};
+
+    std::string bracket {inputStr.substr(bracketL+1,bracketR-bracketL-1)};
+    std::string brace {inputStr.substr(braceL+1,braceR-braceL-1)};
+    std::string parens {inputStr.substr(bracketR+2,braceL-bracketR-3)};
+
+    std::vector<bool> on_sub {};
+    for (auto ch : bracket) {
+      if (ch=='.') {
+        on_sub.push_back(false);
+      } else {
+        on_sub.push_back(true);
+      }
+    }
+    on.push_back(on_sub);
+
+    std::vector<int> jolt_sub {};
+    std::string jolt {};
+    for (auto ch : brace) {
+      if (ch==',') {
+        jolt_sub.push_back(std::stoi(jolt));
+        jolt = "";
+      } else {
+        jolt += ch;
+      }
+    }
+    jolt_sub.push_back(std::stoi(jolt));
+    joltage.push_back(jolt_sub);
 	}
+
+  // for (auto j : joltage) {
+  //   for (auto jj : j) {
+  //     std::cout << " " << jj;
+  //   }
+  //   std::cout << "\n";
+  // }
+  // for (auto o : on) {
+  //   for (auto oo : o) {
+  //     std::cout << " " << oo;
+  //   }
+  //   std::cout << "\n";
+  // }
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
-  std::vector<std::pair<long long,std::pair<std::size_t,std::size_t>>> in_largest{};
-  for (std::size_t ii=0; ii<tiles.size(); ii++) {
-    for (std::size_t jj=ii+1; jj<tiles.size(); jj++) {
-      long long sz = static_cast<long long>(std::abs(tiles[ii].first-tiles[jj].first)+2)*static_cast<long long>(std::abs(tiles[ii].second-tiles[jj].second)+2)/4;
-      in_largest.push_back(std::make_pair(sz,std::make_pair(ii,jj)));
-    }
-  } 
-  std::sort(in_largest.begin(),in_largest.end(),sz_max);
-  part1 = in_largest[0].first;
+
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
-  // clearly, we need a quick way of determining if the given square created has all green/red tiles or not
-  // we know that we have a contiguous single region of red/green from looking at the input
-  // could look at the cross product to determine if square bounded by three consectutive '#' is in or out (but not guaranteed to be fully in or fully out...)
 
-  // slow way would be to create the graph physically; make the paths between; if a point is fully surrounded it is also green; check every possible box to see if it is all green
-  // potentially tons of RAM...
-
-  // maybe we could sort the input and start from largest possible to smallest and simply take the first success?
-  // but to do this, we would still need to have a way to check if the box is valid
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
