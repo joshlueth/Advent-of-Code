@@ -9,6 +9,10 @@
 #include <cmath>
 #include <algorithm>
 
+bool dist_sort(std::pair<long long,std::pair<std::size_t,std::size_t>>& a, std::pair<long long,std::pair<std::size_t,std::size_t>>& b) {
+  return a.first<b.first;
+}
+
 int main(int argc, char* argv[])
 {
 
@@ -42,12 +46,13 @@ int main(int argc, char* argv[])
   std::size_t part1{0};
   long long part2{0};
 
-  std::vector<std::tuple<int,int,int>> junction{};
+  std::vector<long long> jx{}, jy{}, jz{};
   std::vector<std::set<std::size_t>> circuit{};
+  std::vector<std::set<std::size_t>*> c_ptr{};
   int num {0};
 	while (std::getline(inputFile,inputStr))
 	{
-    std::vector<int> coords{};
+    std::vector<long long> coords{};
     std::size_t pos=0, new_pos{inputStr.find_first_of(',',0)};
     while(new_pos!=std::string::npos) {
       coords.push_back(std::stoi(inputStr.substr(pos,new_pos-pos)));
@@ -55,24 +60,33 @@ int main(int argc, char* argv[])
       new_pos = inputStr.find_first_of(',',pos);
     }
     coords.push_back(std::stoi(inputStr.substr(pos)));
-    junction.push_back(std::make_tuple(coords[0],coords[1],coords[2]));
+    jx.push_back(coords[0]);
+    jy.push_back(coords[1]);
+    jz.push_back(coords[2]);
     circuit.push_back(std::set{static_cast<std::size_t>(num)});
     num++;
 	}
+  for (std::size_t c=0; c<circuit.size(); c++) {
+    c_ptr.push_back(&circuit[c]);
+  }
 
 	inputFile.close();
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
   // create graph with distances
-  std::map<int,std::pair<std::size_t,std::size_t>> distance {};
-  for (std::size_t j1=0; j1<junction.size();j1++) {
-    for (std::size_t j2=j1+1; j2<junction.size(); j2++) {
+  std::vector<std::pair<long long,std::pair<std::size_t,std::size_t>>> distance(jx.size()*(jx.size()-1)/2);
+  std::size_t counter{0};
+  for (std::size_t j1=0; j1<jx.size();j1++) {
+    for (std::size_t j2=j1+1; j2<jx.size(); j2++) {
       std::pair<std::size_t,std::size_t> pair{j1,j2};
-      int di = std::pow(std::get<0>(junction[j1])-std::get<0>(junction[j2]),2)+std::pow(std::get<1>(junction[j1])-std::get<1>(junction[j2]),2)+std::pow(std::get<2>(junction[j1])-std::get<2>(junction[j2]),2);
-      distance[di] = pair;
+      long long dx = jx[j1]-jx[j2], dy = jy[j1]-jy[j2], dz = jz[j1]-jz[j2];
+      long long di2 = dx*dx+dy*dy+dz*dz;
+      distance[counter++] = std::make_pair(di2,pair);
     }
   }
+
+  std::sort(distance.begin(),distance.end(),dist_sort);
 
   auto t25 {std::chrono::high_resolution_clock::now()};
 
@@ -87,19 +101,19 @@ int main(int argc, char* argv[])
     if (connections==0) break;
     std::size_t i1 {pair.second.first}, i2 {pair.second.second};
     connections--;
-    if (circuit[i1]==circuit[i2]) continue;
-    for (const auto c2 : circuit[i2]) {
-      circuit[i1].insert(c2);
+    if (*c_ptr[i1]==*c_ptr[i2]) continue;
+    for (const auto c2 : *c_ptr[i2]) {
+      (*c_ptr[i1]).insert(c2);
     }
-    for (const auto c1 : circuit[i1]) {
-      circuit[c1] = circuit[i1];
+    for (const auto c1 : *c_ptr[i1]) {
+      c_ptr[c1] = c_ptr[i1];
     }
   }
 
   // make a set of sets:
   std::set<std::set<std::size_t>> circuit_counts {};
-  for (const auto& cnum : circuit) {
-    circuit_counts.insert(cnum);
+  for (const auto& cnum : c_ptr) {
+    circuit_counts.insert(*cnum);
   }
   
   // finally, solve part 1 by getting the three largest circuit sizes and multiplying them together
@@ -115,15 +129,15 @@ int main(int argc, char* argv[])
 
   for (const auto& pair : distance) {
     std::size_t i1 {pair.second.first}, i2 {pair.second.second};
-    if (circuit[i1]==circuit[i2]) continue;
-    for (const auto c2 : circuit[i2]) {
-      circuit[i1].insert(c2);
+    if (*c_ptr[i1]==*c_ptr[i2]) continue;
+    for (const auto c2 : *c_ptr[i2]) {
+      (*c_ptr[i1]).insert(c2);
     }
-    for (const auto c1 : circuit[i1]) {
-      circuit[c1] = circuit[i1];
+    for (const auto c1 : *c_ptr[i1]) {
+      c_ptr[c1] = c_ptr[i1];
     }
-    if (circuit[i1].size()==circuit.size()) {
-      part2 = static_cast<long long>(std::get<0>(junction[i1])) * static_cast<long long>(std::get<0>(junction[i2]));
+    if ((*c_ptr[i1]).size()==c_ptr.size()) {
+      part2 = static_cast<long long>(jx[i1]) * static_cast<long long>(jx[i2]);
       break;
     }
   }
@@ -135,6 +149,7 @@ int main(int argc, char* argv[])
 	std::cout << "  Reading in Input File:    " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "\n";
 	std::cout << "  Problem Solving (Dist. ): " << std::chrono::duration_cast<std::chrono::microseconds>(t25-t2).count() << "\n";
 	std::cout << "  Problem Solving (Part 1): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << "\n";
+	std::cout << "  Problem Solving (P1-Dis): " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t25).count() << "\n";
 	std::cout << "  Problem Solving (Part 2): " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << "\n";
 
   std::cout << "\nPart 1: " << part1 << "\n";
@@ -149,3 +164,8 @@ int main(int argc, char* argv[])
 // this would be much faster if instead we had a pointer for each junction box to a circuit
 // and then when two junction boxes on different circuits were detected, we simply a) combined the sets of junctions, and b) had the pointers of each entry in the higher set point to that circuit
 // this actually seems like an interesting use for a class?
+
+// TODO:
+// implement union-find
+// avoid using a set: instead pre-allocate a vector and then sort
+// even better, figure out what kd-tree does
