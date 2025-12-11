@@ -3,6 +3,32 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <vector>
+#include <unordered_map>
+
+bool key_exists(std::string key, std::unordered_map<std::string,long long>& map) {
+  if (map.find(key)==map.end()) return false;
+  return true;
+}
+
+long long track_path(std::string start, std::string end, std::unordered_map<std::string,std::vector<std::string>>& graph, std::unordered_map<std::string,long long>& memoize, bool dac, bool fft) {
+  long long sum=0;
+  for (std::size_t word=0; word<graph[start].size(); word++) {
+    std::string next = graph[start][word];
+    if (next==end) {
+      return (dac&&fft);
+    }
+    std::string key = next;
+    key += (dac ? "1" : "0");
+    key += (fft ? "1" : "0");
+    if (!key_exists(key,memoize)) {
+      long long result = track_path(next,end,graph,memoize,dac||(next=="dac"),fft||(next=="fft"));
+      memoize[key] = result;
+    }
+    sum += memoize[key];
+  }
+  return sum;
+}
 
 int main(int argc, char* argv[])
 {
@@ -34,22 +60,36 @@ int main(int argc, char* argv[])
 	}
 
 	std::string inputStr {};
-  int part1{0}, part2{0};
+  long long part1{0}, part2{0};
 
+  // we make the assumption that this is not a cyclic graph (otherwise the answer would be infinity!)
+  // the solution we get will depend on the type of data structure we use for the graph
+  // use of an adjacency matrix will mean matrix multiplication until everything other than 'out' is zero
+  // alternatively, we could follow each possible path through the graph with memoization (=> this seems better, since it is more general)
+
+  std::unordered_map<std::string,std::vector<std::string>> graph {};
 	while (std::getline(inputFile,inputStr))
 	{
-
+    std::string key{inputStr.substr(0,3)};
+    std::vector<std::string> nodes {};
+    for (std::size_t ss=5; ss<inputStr.size(); ss+=4) {
+      nodes.push_back(inputStr.substr(ss,3));
+    }
+    graph[key] = nodes;
 	}
 
 	inputFile.close();
+  
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
-
+  std::unordered_map<std::string,long long> memoize1 {};
+  part1 = track_path("you","out",graph,memoize1,true,true);
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
-
+  std::unordered_map<std::string,long long> memoize2 {};
+  part2 = track_path("svr","out",graph,memoize2,false,false);
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
