@@ -10,6 +10,52 @@
 #include <cstdlib>
 #include <algorithm>
 
+
+// 0; 1; 2; 3; 4; 10; 20; 30; 40; 21; 31; 41; 32; 42; 43;
+// 210; 310; 410; 320; 420; 430; 321; 421; 431; 432; 3210; 4210; 4310; 4320; 4321; 43210.
+// so clearly the strategy is to increment the outer-most variable
+// if that goes too high, increment the next-inner-most variable, set the outer-most variable to the value of the interior+1 (enforcing the sequence to be monotonically decreasing)
+// if interior+1 is the maximum value, we have to look at interior+2
+// if all interior values plus the offset are the maximum value, in reverse order add 0, then set the inner-most to 1, 2, 3, ... moving outwards
+void increment_buttons(std::vector<std::size_t>& buttons, std::size_t max_b) {
+  if (buttons.size()==0) {
+    buttons.push_back(0);
+    return;
+  }
+  buttons[0] += 1;
+  if (buttons[0]==max_b) { // must find innermost variable that we can increment
+    std::size_t increment=buttons.size();
+    for (std::size_t jj=0; jj<buttons.size(); jj++) {
+      if (buttons[jj]+jj+1<max_b) {
+        increment = jj;
+        buttons[increment] += 1;
+        break;
+      }
+    }
+    if (increment==buttons.size()) { // no options to increment was found
+      buttons.push_back(0); // instead add zero to the outermost
+    }
+    for (std::size_t jj=increment, ii=buttons[increment]; ; jj--,ii++) {
+      buttons[jj] = ii;
+      if (jj==0) break;
+    }
+  }
+  return;
+}
+
+bool check_pushing_buttons(const std::vector<std::size_t>& buttons, const std::vector<std::vector<bool>>& presses, const std::vector<bool>& goal) {
+  std::vector<bool> current(goal.size(),false);
+  // try pushing the buttons in these_buttons, this_button at a time
+  for (std::size_t this_button=0; this_button<buttons.size(); this_button++) {
+    // element-wise use xor to push buttons
+    for (std::size_t b=0; b<goal.size(); b++) {
+      current[b] = current[b] ^ presses[buttons[this_button]][b];
+    }
+  }
+
+  return (current==goal);
+}
+
 void rref(std::vector<std::vector<long long>>& mat, std::vector<size_t>& free) {
   std::size_t col=0, row=0;
   while(row<mat.size()) {
@@ -127,7 +173,7 @@ void rref(std::vector<std::vector<long long>>& mat, std::vector<size_t>& free) {
   return;
 }
 
-int backward_sub(std::vector<std::vector<long long>>& mat, std::vector<long long>& csol) {
+int backward_sub(const std::vector<std::vector<long long>>& mat, std::vector<long long>& csol) {
   for (std::size_t rowt=mat.size(); rowt>0; rowt--) {
     std::size_t row = rowt-1;
     bool first = false;
@@ -138,15 +184,15 @@ int backward_sub(std::vector<std::vector<long long>>& mat, std::vector<long long
       if (!first) {
         first_val = mat[row][col];
         first_loc = col;
-        csol[first_loc] = mat[row][mat[row].size()-1]; // error
+        csol[first_loc] = mat[row][mat[row].size()-1];
         first = true;
       } else {
-        csol[first_loc] -= mat[row][col]*csol[col]; // error
+        csol[first_loc] -= mat[row][col]*csol[col];
       }
     }
-    if (std::lcm(csol[first_loc],first_val)!=csol[first_loc]) return -1;
-    csol[first_loc] /= first_val; // error
-    if (csol[first_loc]<0) {
+    if (std::lcm(csol[first_loc],first_val)!=csol[first_loc]) return -1; // if this is the case, then the given solution is not an integer solution!
+    csol[first_loc] /= first_val;
+    if (csol[first_loc]<0) { // if any values are less than zero, return false. Only solutions are positive solutions
       return -1;
     }
   }
@@ -343,61 +389,42 @@ int main(int argc, char* argv[])
 
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
+  std::vector<std::size_t> t_buttons{};
+
   // now that we have verified that the problem is appropriately parsed
-  // /*
   for (std::size_t Case=0; Case<on.size(); Case++) {
     std::vector<bool> goal = on[Case];
     std::vector<std::vector<bool>> presses = buttons[Case]; // [this button][affects these lights]
-    std::vector<int> jolts = joltage[Case];
 
-    std::size_t total_combinations = static_cast<std::size_t>(static_cast<double>(presses.size())*(std::pow(presses.size(),presses.size())-1)/static_cast<double>(presses.size()-1));
 
     // FF:F, TF:T, TT:F, FT:T - use bitwise xor (^)
     bool found = false;
-    std::size_t options=0;
-    std::vector<bool> start(goal.size(),false);
+    std::vector<std::size_t> these_buttons {};
     while (!found) {
-      // try buttons: every single combination
-      // restart with initially making everything false
-      std::vector<bool> current {start};
-      std::vector<std::size_t> these_buttons {};
-      // set these_buttons
-      std::size_t current_counter = options;
-      do {
-        these_buttons.push_back(current_counter%presses.size());
-        current_counter/=presses.size();
-      } while (current_counter>0);
+      
+      // increment_buttons should only give combinations
+      increment_buttons(these_buttons,presses.size());
 
-      // try pushing the buttons in these_buttons, this_button at a time
-      for (std::size_t this_button=0; this_button<these_buttons.size(); this_button++) {
-        // element-wise use xor to push buttons
-        for (std::size_t b=0; b<goal.size(); b++) {
-          current[b] = current[b] ^ presses[these_buttons[this_button]][b];
-        }
-      }
-
-      if (current==goal) {
-        found = true;
-        part1 += static_cast<int>(these_buttons.size());
-
-        // output to make sure that it works...
-        std::cout << "case num: " << Case << " size: " << these_buttons.size() << " buttons:";
-        for (auto it : these_buttons) {
-          std::cout << " " << it;
-        }
-        std::cout << "\n";
-
-        break; // break for loop; found solution
-      } else {
-        options++;
-      }
-      if (options>=total_combinations) {
+      // if the number of buttons to press is greater than the number of buttons in existence, then there is no solution...
+      if (these_buttons.size()>presses.size()) {
         std::cerr << "no solution found...\n";
         return 0;
       }
+      found = check_pushing_buttons(these_buttons, presses, goal);
+      if (found) {
+        part1 += static_cast<int>(these_buttons.size());
+
+        // OUTPUT to make sure that it works...
+        // std::cout << "case num: " << Case << " size: " << these_buttons.size() << " buttons:";
+        // for (auto it : these_buttons) {
+        //   std::cout << " " << it;
+        // }
+        // std::cout << "\n";
+
+        break; // break for loop; found solution
+      }
     }
   }
-  // */
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
@@ -432,9 +459,9 @@ int main(int argc, char* argv[])
     std::vector<std::size_t> free_var{};
     rref(mat,free_var);
 
-    std::cout << "Case " << Case << ":\n";
+    std::cout << "Case " << Case << ": ";
     int this_pushes = num_pushes(mat,free_var,jolts);
-    std::cout << "  Pushes for this case: " << this_pushes << "\n";
+    std::cout << this_pushes << " pushes\n";
     part2 += this_pushes;
   }
 
@@ -451,3 +478,14 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
+
+// possible optimizations:
+// P1
+// make sure that I am only use all unique *combinations*, not permutations
+// and additionally that there are no duplicates
+// together these (^) optimizations should make the search space reduce by over half
+// optimize XOR calculations somehow?
+
+// P2
+// use inequalities to further constrain free variables
+// reduce dimensionality of search space
