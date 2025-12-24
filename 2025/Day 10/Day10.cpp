@@ -100,7 +100,7 @@ void rref(std::vector<std::vector<long long>>& mat, std::vector<size_t>& free) {
           std::cout << row << " Should be zero!\n";
         }
       }
-      mat.erase(mat.begin()+static_cast<std::size_t>(row)); // erase entry with all zeros
+      mat.erase(mat.begin()+static_cast<int>(row)); // erase entry with all zeros
     }
   }
   // iterate over each row; make sure that the initial pivot is 1!
@@ -127,7 +127,7 @@ void rref(std::vector<std::vector<long long>>& mat, std::vector<size_t>& free) {
   return;
 }
 
-int backward_sub(std::vector<std::vector<long long>>& mat, std::vector<int>& csol) {
+int backward_sub(std::vector<std::vector<long long>>& mat, std::vector<long long>& csol) {
   for (std::size_t rowt=mat.size(); rowt>0; rowt--) {
     std::size_t row = rowt-1;
     bool first = false;
@@ -138,32 +138,32 @@ int backward_sub(std::vector<std::vector<long long>>& mat, std::vector<int>& cso
       if (!first) {
         first_val = mat[row][col];
         first_loc = col;
-        csol[first_loc] = mat[row][mat[row].size()-1];
+        csol[first_loc] = mat[row][mat[row].size()-1]; // error
         first = true;
       } else {
-        csol[first_loc] -= mat[row][col]*csol[col];
+        csol[first_loc] -= mat[row][col]*csol[col]; // error
       }
     }
     if (std::lcm(csol[first_loc],first_val)!=csol[first_loc]) return -1;
-    csol[first_loc] /= first_val;
+    csol[first_loc] /= first_val; // error
     if (csol[first_loc]<0) {
       return -1;
     }
   }
-  int presses = 0;
-  for (int cs : csol) {
+  long long presses = 0;
+  for (long long cs : csol) {
     presses += cs;
   }
-  return presses;
+  return static_cast<int>(presses);
 }
 
 int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& free, std::vector<int> jolts) {
 
   int maxj = *std::max_element(jolts.begin(),jolts.end());
-  int total_pushes=maxj*(mat[0].size()-1);
+  int total_pushes=maxj*(static_cast<int>(mat[0].size())-1);
 
   // initial free variable guesses
-  std::vector<int> guesses(mat[0].size(),0);
+  std::vector<long long> guesses(mat[0].size(),0);
   // initially upper and lower values for each guess
   std::vector<int> lower(free.size(),0), upper(free.size(),maxj), current(free.size(),0);
 
@@ -218,10 +218,6 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
     
     if (this_pushes>=0) {
       total_pushes = std::min(total_pushes,this_pushes);
-      // for (const auto& guess : guesses) {
-      //   std::cout << " " << guess;
-      // }
-      // std::cout << " " << this_pushes << "\n";
     }
 
     // if we only have one solution, we have solved it!
@@ -230,7 +226,6 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
     else if (current[current.size()-1-adjust]>upper[current.size()-1-adjust]) break;
   }
 
-  std::cout << "Total pushes: " << total_pushes << "\n";
   return total_pushes;
 }
 
@@ -349,7 +344,7 @@ int main(int argc, char* argv[])
 	auto t2 {std::chrono::high_resolution_clock::now()};
 
   // now that we have verified that the problem is appropriately parsed
-  /*
+  // /*
   for (std::size_t Case=0; Case<on.size(); Case++) {
     std::vector<bool> goal = on[Case];
     std::vector<std::vector<bool>> presses = buttons[Case]; // [this button][affects these lights]
@@ -402,7 +397,7 @@ int main(int argc, char* argv[])
       }
     }
   }
-  */
+  // */
 
   auto t3 {std::chrono::high_resolution_clock::now()};
 
@@ -439,6 +434,7 @@ int main(int argc, char* argv[])
 
     std::cout << "Case " << Case << ":\n";
     int this_pushes = num_pushes(mat,free_var,jolts);
+    std::cout << "  Pushes for this case: " << this_pushes << "\n";
     part2 += this_pushes;
   }
 
