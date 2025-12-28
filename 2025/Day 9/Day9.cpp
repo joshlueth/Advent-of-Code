@@ -11,13 +11,6 @@ bool sz_max(std::pair<long long,std::pair<std::size_t,std::size_t>>& a, std::pai
   return a.first>b.first;
 }
 
-// bool tx_sort(std::pair<int,int>& a, std::pair<int,int>& b) {
-//   return a.first<b.first;
-// }
-// bool ty_sort(std::pair<int,int>& a, std::pair<int,int>& b) {
-//   return a.second<b.second;
-// }
-
 int main(int argc, char* argv[])
 {
 
@@ -75,24 +68,47 @@ int main(int argc, char* argv[])
   part1 = in_largest[0].first;
 
   auto t3 {std::chrono::high_resolution_clock::now()};
-
+  
   // get list of sorted coordinates
   std::vector<int> txs {tilesx}, tys {tilesy};
   std::sort(txs.begin(),txs.end());
   std::sort(tys.begin(),tys.end());
 
   // calculate coordinate compression
-  std::unordered_map<int,int> xmap {}, ymap {};
-  int counter=0, recent=-1;
+  std::unordered_map<int,int> xmap {}, ymap {}, xmap_actual{}, ymap_actual{};
+  std::vector<std::size_t> x_delete{}, y_delete{};
+  
+  int counter=0, recent=-2, counter_actual=0;
   for (std::size_t ii=0;ii<txs.size();ii++) {
     if (txs[ii]==recent) continue;
-    xmap[txs[ii]] = 2*counter++;
+
+    xmap[txs[ii]] = counter;
+
+    if (txs[ii]==recent+1) {
+      counter_actual -= 1;
+      x_delete.push_back(static_cast<std::size_t>(counter-1));
+    }
+    xmap_actual[txs[ii]] = counter_actual;
+
+    counter += 2;
+    counter_actual += 2;
     recent = txs[ii];
   }
-  counter = 0; recent = -1;
+
+  counter = 0; recent = -2, counter_actual = 0;
   for (std::size_t jj=0;jj<tys.size();jj++) {
     if (tys[jj]==recent) continue;
-    ymap[tys[jj]] = 2*counter++;
+
+    ymap[tys[jj]] = counter;
+    
+    if (tys[jj]==recent+1) { // the jump is only 1
+      counter_actual -= 1; // the mapped counter for this will be one less
+      y_delete.push_back(static_cast<std::size_t>(counter-1)); // this is the mapped y that needs to be deleted
+    }
+    ymap_actual[tys[jj]] = counter_actual;
+
+    counter += 2;
+    counter_actual += 2;
     recent = tys[jj];
   }
 
@@ -113,8 +129,6 @@ int main(int argc, char* argv[])
         grid[startx][starty] = '#';
       }
     }
-    // grid[gx][gy] = 'O';
-    // grid[gxn][gyn] = 'O';
   }
 
   std::vector<std::pair<std::size_t,std::size_t>> inside {};
@@ -122,9 +136,9 @@ int main(int argc, char* argv[])
   for (std::size_t printy=1; printy<grid[0].size()-1; printy++) {
     for (std::size_t printx=1; printx<grid.size()-1; printx++) {
       if (grid[printx][printy]=='#') continue;
-      std::vector<char> subvl(grid[printx-1].begin(),grid[printx-1].begin()+static_cast<long long>(printy));
+      std::vector<char> subvl(grid[printx-1].begin(),grid[printx-1].begin()+static_cast<long long>(printy)); // subvectorlower
       std::vector<char> subv(grid[printx].begin(),grid[printx].begin()+static_cast<long long>(printy));
-      std::vector<char> subvh(grid[printx+1].begin(),grid[printx+1].begin()+static_cast<long long>(printy));
+      std::vector<char> subvh(grid[printx+1].begin(),grid[printx+1].begin()+static_cast<long long>(printy)); // subvectorhigher
       // count the number of '#' in subv
       // if odd, add point to inside
       int countLine=0, LineDir=0; //, countO=0;
@@ -150,42 +164,101 @@ int main(int argc, char* argv[])
     }
   }
 
-  // file in interior points
+  // fill in interior points
   for (const auto& entry : inside) {
     grid[entry.first][entry.second] = '#';
+  }
+  
+  // remove all coordinate transformed lines with gaps of 1!
+  std::vector<std::vector<char>> grid_actual(grid.size()-x_delete.size(),std::vector<char>(grid[0].size()-y_delete.size()));
+  std::size_t xdel_counter=0;
+  for (std::size_t xfrom=0, xto=0; xfrom<grid.size(); xfrom++, xto++) {
+    while (xdel_counter<x_delete.size() && x_delete[xdel_counter]==xfrom) {
+      xfrom++; xdel_counter++;
+    }
+    std::size_t ydel_counter = 0;
+    for (std::size_t yfrom=0, yto=0; yfrom<grid[xfrom].size(); yfrom++, yto++) {
+      while (ydel_counter<y_delete.size() && y_delete[ydel_counter]==yfrom) {
+        yfrom++; ydel_counter++;
+      }
+      grid_actual[xto][yto] = grid[xfrom][yfrom];
+    }
   }
 
   // check interior bounding boxes
   bool interior=false;
-  while (!interior) {
-    for (const auto& box : in_largest) {
-      std::size_t ind1 {box.second.first}, ind2 {box.second.second};
-      int indtx1 {tilesx[ind1]}, indtx2 {tilesx[ind2]}, indty1 {tilesy[ind1]}, indty2 {tilesy[ind2]};
-      int indlx1 {xmap[indtx1]}, indlx2 {xmap[indtx2]}, indly1 {ymap[indty1]}, indly2 {ymap[indty2]};
-      // std::cout << "overall index " << indtx1 << " " << indtx2 << " " << indty1 << " " << indty2 << " " << box.first << "\n";
-      // std::cout << "local index " << indlx1 << " " << indly1 << " " << indlx2 << " " << indly2 << "\n";
-      for (std::size_t xc=static_cast<std::size_t>(std::min(indlx1,indlx2)); xc<=static_cast<std::size_t>(std::max(indlx1,indlx2)); xc++) {
-        for (std::size_t yc=static_cast<std::size_t>(std::min(indly1,indly2)); yc<=static_cast<std::size_t>(std::max(indly1,indly2)); yc++) {
-          if(grid[xc][yc]=='.') {
-            // std::cout << "has dot: " << xc << " " << yc << "\n";
-            goto next_loop;
-          }
+  for (const auto& box : in_largest) {
+    std::size_t ind1 {box.second.first}, ind2 {box.second.second}; // get tile indices for next largest box
+    int indtx1 {tilesx[ind1]}, indtx2 {tilesx[ind2]}, indty1 {tilesy[ind1]}, indty2 {tilesy[ind2]}; // get tile numbers from tiles indices
+    int indlx1 {xmap_actual[indtx1]}, indlx2 {xmap_actual[indtx2]}, indly1 {ymap_actual[indty1]}, indly2 {ymap_actual[indty2]}; // map tile numbers to local tile numbers
+    // for every location in the tile map that would be contained in the box in questiosn
+    for (std::size_t xc=static_cast<std::size_t>(std::min(indlx1,indlx2)); xc<=static_cast<std::size_t>(std::max(indlx1,indlx2)); xc++) {
+      for (std::size_t yc=static_cast<std::size_t>(std::min(indly1,indly2)); yc<=static_cast<std::size_t>(std::max(indly1,indly2)); yc++) {
+        // check if it is validj
+        if(grid_actual[xc][yc]=='.') {
+          goto next_loop; // if not, goto the next loop
         }
       }
-      interior = true;
-      part2 = static_cast<long long>(std::abs(indtx1-indtx2)+1)*static_cast<long long>(std::abs(indty1-indty2)+1);
-      next_loop:
-      if (interior) break;
     }
+    // only reach here if it is valid:
+    interior = true;
+    part2 = static_cast<long long>(std::abs(indtx1-indtx2)+1)*static_cast<long long>(std::abs(indty1-indty2)+1); // calculate area using tile indices
+    // std::cout << indty1 << " " << indtx1 << " " << indty2 << " " << indtx2 << "\n";
+    // std::cout << indly1 << " " << indlx1 << " " << indly2 << " " << indlx2 << "\n";
+    next_loop:
+    if (interior) break;
   }
 
   // output grid to terminal (or text file with redirection)
+  // std::cout << "\n";
   // for (std::size_t printx = 0; printx<grid.size(); printx++) {
   //   for (std::size_t printy = 0; printy<grid[0].size(); printy++) {
   //     std::cout << grid[printx][printy];
   //   }
   //   std::cout << "\n";
   // }
+  // std::cout << "\n";
+
+  // output grid_actual to terminal (or test file with redirection)
+  // std::cout << "\n";
+  // for (std::size_t printx = 0; printx<grid_actual.size(); printx++) {
+  //   for (std::size_t printy = 0; printy<grid_actual[0].size(); printy++) {
+  //     std::cout << grid_actual[printx][printy];
+  //   }
+  //   std::cout << "\n";
+  // }
+  // std::cout << "\n";
+
+  // std::cout << "x_delete\n";
+  // for (const auto& xd : x_delete) {
+  //   std::cout << xd << " ";
+  // }
+  // std::cout << "\n";
+  // std::cout << "y_delete\n";
+  // for (const auto& yd : y_delete) {
+  //   std::cout << yd << " ";
+  // }
+  // std::cout << "\n";
+
+  // std::cout << "xtiles\n";
+  // for (const auto& tx : txs) {
+  //   std::cout << tx << " ";
+  // }
+  // std::cout << "\n";
+  // for (const auto& tx : txs) {
+  //   std::cout << xmap[tx] << " ";
+  // }
+  // std::cout << "\n";
+
+  // std::cout << "ytiles\n";
+  // for (const auto& ty : tys) {
+  //   std::cout << ty << " ";
+  // }
+  // std::cout << "\n";
+  // for (const auto& ty : tys) {
+  //   std::cout << ymap[ty] << " ";
+  // }
+  // std::cout << "\n";
 
   auto t4 {std::chrono::high_resolution_clock::now()};
 
