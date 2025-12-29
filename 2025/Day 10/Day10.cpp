@@ -9,6 +9,7 @@
 #include <numeric>
 #include <cstdlib>
 #include <algorithm>
+// #include <sys>
 
 
 // 0; 1; 2; 3; 4; 10; 20; 30; 40; 21; 31; 41; 32; 42; 43;
@@ -34,6 +35,11 @@ void increment_buttons(std::vector<std::size_t>& buttons, std::size_t max_b) {
     }
     if (increment==buttons.size()) { // no options to increment was found
       buttons.push_back(0); // instead add zero to the outermost
+      // IF the number of buttons to press is greater than the number of buttons in existence, then there is no solution...
+      if (buttons.size()>max_b) {
+        std::cerr << "no solution found...\n";
+        std::exit(0);
+      }
     }
     for (std::size_t jj=increment, ii=buttons[increment]; ; jj--,ii++) {
       buttons[jj] = ii;
@@ -56,16 +62,21 @@ bool check_pushing_buttons(const std::vector<std::size_t>& buttons, const std::v
   return (current==goal);
 }
 
-void rref(std::vector<std::vector<long long>>& mat, std::vector<size_t>& free) {
+void rref(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& free, std::vector<std::size_t>& pivot) {
   std::size_t col=0, row=0;
   while(row<mat.size()) {
     while (col<mat[0].size()-1) {
+
       // check if we need to pivot
       if (mat[row][col]==0) {
         std::size_t irow=row+1;
         while (irow<mat.size()) {
           if (mat[irow][col]!=0) {
-            // found pivot, swap rows
+            // found pivot, swap pivot indices
+            std::size_t swap_pivot = pivot[row];
+            pivot[row] = pivot[irow];
+            pivot[irow] = swap_pivot;
+            // swap row indices
             for (std::size_t icol=0; icol<mat[row].size(); icol++) {
               long long swap = mat[row][icol];
               mat[row][icol] = mat[irow][icol];
@@ -96,7 +107,7 @@ void rref(std::vector<std::vector<long long>>& mat, std::vector<size_t>& free) {
       for (std::size_t down=row+1; down<mat.size(); down++) {
         long long next = std::abs(mat[down][col]);
         if (next!=0) {
-          // make sure we can do integer math when reducing
+          // guarantee we can do integer math when reducing
           for (std::size_t icol=col; icol<mat[row].size(); icol++) {
             mat[row][icol] *= next;
             mat[down][icol] *= current;
@@ -109,14 +120,14 @@ void rref(std::vector<std::vector<long long>>& mat, std::vector<size_t>& free) {
           for (std::size_t icol=col; icol<mat[row].size(); icol++) {
             mat[down][icol] -= sign_store * mat[row][icol];
           }
-          // std::cout << "reduced\n";
         }
       }
+
       // further eliminate rows above
       for (std::size_t up=0; up<row; up++) {
         long long prev = std::abs(mat[up][col]);
         if (prev!=0) {
-          // make sure we can do integer math when reducing
+          // guarantee we can do integer math when reducing
           for (std::size_t icol=0; icol<mat[row].size(); icol++) {
             mat[row][icol] *= prev/std::gcd(prev,current);
             mat[up][icol] *= current/std::gcd(prev,current);
@@ -203,15 +214,19 @@ int backward_sub(const std::vector<std::vector<long long>>& mat, std::vector<lon
   return static_cast<int>(presses);
 }
 
-int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& free, std::vector<int> jolts) {
 
-  int maxj = *std::max_element(jolts.begin(),jolts.end());
+// optimizations:
+// use inequalities to further constrain free variables
+// reduce dimensionality of search space!
+
+int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& free, std::vector<int>& upper, int maxj) {
+
   int total_pushes=maxj*(static_cast<int>(mat[0].size())-1);
 
   // initial free variable guesses
   std::vector<long long> guesses(mat[0].size(),0);
   // initially upper and lower values for each guess
-  std::vector<int> lower(free.size(),0), upper(free.size(),maxj), current(free.size(),0);
+  std::vector<int> lower(free.size(),0), current(free.size(),0);
 
   // get bounds for guesses
   // for (std::size_t rows=0; rows<mat.size(); rows++) {
@@ -268,7 +283,7 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
 
     // if we only have one solution, we have solved it!
     if (current.size()<=adjust) break;
-    // otherwise, this represents the complete iteration
+    // otherwise, this represents the complete iteration over all possible solutions
     else if (current[current.size()-1-adjust]>upper[current.size()-1-adjust]) break;
   }
 
@@ -405,16 +420,11 @@ int main(int argc, char* argv[])
       // increment_buttons should only give combinations
       increment_buttons(these_buttons,presses.size());
 
-      // if the number of buttons to press is greater than the number of buttons in existence, then there is no solution...
-      if (these_buttons.size()>presses.size()) {
-        std::cerr << "no solution found...\n";
-        return 0;
-      }
       found = check_pushing_buttons(these_buttons, presses, goal);
       if (found) {
         part1 += static_cast<int>(these_buttons.size());
 
-        // OUTPUT to make sure that it works...
+        // output to make sure that it works...
         // std::cout << "case num: " << Case << " size: " << these_buttons.size() << " buttons:";
         // for (auto it : these_buttons) {
         //   std::cout << " " << it;
@@ -448,7 +458,7 @@ int main(int argc, char* argv[])
     for (std::size_t ii=0; ii<buttons[Case].size(); ii++) {
       for (std::size_t jj=0; jj<buttons[Case][ii].size(); jj++) {
         if (buttons[Case][ii][jj]) {
-          mat[jj][ii] = 1;
+          mat[jj][ii] = 1; // so mat is [lights][affected by button]
         } 
       }  
     }
@@ -457,12 +467,29 @@ int main(int argc, char* argv[])
     }
 
     std::vector<std::size_t> free_var{};
-    rref(mat,free_var);
+    std::vector<std::size_t> pivot(mat.size(),0);
+    for (std::size_t ii=0; ii<pivot.size(); ii++) {
+      pivot[ii] = ii;
+    }
+    rref(mat,free_var,pivot);
 
-    std::cout << "Case " << Case << ": ";
-    int this_pushes = num_pushes(mat,free_var,jolts);
-    std::cout << this_pushes << " pushes\n";
+    // std::cout << "Case " << Case << ": ";
+
+    // use pivot to set upper bound on free variables
+    int maxj = *std::max_element(jolts.begin(),jolts.end()); // max joltage overall
+    std::vector<int> upper(free_var.size(),maxj);
+    for (std::size_t fv=0; fv<free_var.size(); fv++) { // index denoting free variable
+      for (std::size_t loop=0; loop<buttons[Case][0].size(); loop++) { // go down matrix column
+        if (buttons[Case][free_var[fv]][loop]==1) { // if button triggers light
+          upper[fv] = std::min(upper[fv],jolts[loop]); // then maximum value of free variable button is the minimum value of all joltages
+        }
+      }
+    }
+
+    int this_pushes = num_pushes(mat,free_var,upper,maxj);
     part2 += this_pushes;
+
+    // std::cout << this_pushes << " pushes\n";
   }
 
   auto t4 {std::chrono::high_resolution_clock::now()};
@@ -478,14 +505,3 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-
-// possible optimizations:
-// P1
-// make sure that I am only use all unique *combinations*, not permutations
-// and additionally that there are no duplicates
-// together these (^) optimizations should make the search space reduce by over half
-// optimize XOR calculations somehow?
-
-// P2
-// use inequalities to further constrain free variables
-// reduce dimensionality of search space
