@@ -214,11 +214,6 @@ int backward_sub(const std::vector<std::vector<long long>>& mat, std::vector<lon
   return static_cast<int>(presses);
 }
 
-
-// optimizations:
-// use inequalities to further constrain free variables
-// reduce dimensionality of search space!
-
 int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& free, std::vector<int>& upper, int maxj) {
 
   int total_pushes=maxj*(static_cast<int>(mat[0].size())-1);
@@ -229,32 +224,98 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
   std::vector<int> lower(free.size(),0), current(free.size(),0);
 
   // get bounds for guesses
-  // for (std::size_t rows=0; rows<mat.size(); rows++) {
-  //   for (std::size_t fr=0; fr<free.size(); fr++) {
-  //     if (mat[rows].back()>0) {
-  //       if (mat[rows][free[fr]]>0) {
-  //         upper[fr] = std::min(upper[fr],static_cast<int>(mat[rows].back()/mat[rows][free[fr]]));
-  //       } else if (mat[rows][free[fr]]<0) {
-  //         lower[fr] = std::max(lower[fr],static_cast<int>( ));
-  //       }
-  //     }
-  //   }
+  // when getting bounds for guesses, we have to keep in mind that if a reduced matrix row looks like
+  // 1a -1b 1c 2
+  // where indices 1 (-1) and 2 (1) are the free variables, that the inequality is c<=2+b!
+  // so practically, first we should get the inequalities by taking the free variables out to get a matrix with rows corresponding to
+  // fv1, fv2, ..., fvEnd, joltage
+  // then we can remove all rows with no relevant fv information
+
+  std::vector<std::vector<long long>> inequalities {};
+  std::vector<double> free_sum(free.size());
+  for (std::size_t rows=0; rows<mat.size(); rows++) {
+    std::vector<long long> inequality_row(free.size()+1); // temporarily store row. Don't store permanently if number of non-zero values are 0 (meaningless) or 1 (single variable inequality, update bounds)
+    int nonzero_counter=-1;
+    std::size_t last_nonzero_loc=0, pivot_ind=0;
+    for (std::size_t cols=0; cols<mat[rows].size(); cols++) {
+      long long local = mat[rows][cols];
+      if (local!=0) {
+        if (nonzero_counter==-1) {
+          pivot_ind = cols;
+          nonzero_counter++;
+        } else {
+          for (std::size_t fv=0; fv<free.size(); fv++) {
+            if (free[fv]==cols) {
+              inequality_row[fv] = local;
+              nonzero_counter++;
+              free_sum[fv] += local/static_cast<double>(mat[rows][pivot_ind]);
+              last_nonzero_loc = fv;
+            }
+          }
+        }
+      }
+    }
+    inequality_row.back() = mat[rows].back();
+    if (nonzero_counter==0) {
+      continue; // meaningless, skip
+    } else if (nonzero_counter==1) {
+      // single variable inequality
+      // pos+pos -> upper bound
+      if (inequality_row[last_nonzero_loc]>0) {
+        if (inequality_row.back()>=0) {
+          upper[last_nonzero_loc] = std::min(upper[last_nonzero_loc],static_cast<int>(inequality_row.back()/inequality_row[last_nonzero_loc]));
+        }
+      }
+      // neg+neg -> lower bound
+      else {
+        if (inequality_row.back()<=0) {
+          lower[last_nonzero_loc] = std::max(lower[last_nonzero_loc],static_cast<int>(inequality_row.back()/inequality_row[last_nonzero_loc]));
+        }
+      }
+      // pos+neg||neg+pos should be impossible for a solution to actually exist
+    } else { // multiple variable inequality; use recursion to make guesses that satisfy
+      inequalities.push_back(inequality_row);
+    }
+  }
+  // should use recursion to make free variable guesses
+  // last free variable won't be a guess - just a simple button minimization
+  // e.g. sum up the free variable column and see how many extra button pushes it causes other variables to have (using free_sum) - to determine if we should minimize or maximize the value of the last free variable
+  // note that we can't just use free sum here because it is not necessarily true that we are fully in rref form for integers (e.g. 2 1 5, where 1 is a free variable)
+  // note: also look at variable *equalities* solely in the free variables. Is this a concern? (yes - mainly for determining using free_sum?) could potentially use to determine co-prime values
+  // theoretically, using all inequalities should mean that the equation solver will never return a negative number - check this!
+
+  // if free_sum is 1, then any choice is valid
+  // if free_sum is less than 1, then we want to choose the minimum valid value of the last free variable
+  // if free_sum is greater than 1, then we want to choose the maximum valid value of the last free variable
+
+  // instead of using recursion, could verify that each guess would satisfy inequalities?
+  // for the last guess, would simply calculation if the minimum or maximum valid solution should be taken...
+
+  // if (free.size()>0) {
+  //   std::cout << "free var bounds " << free.size() << "\n";
+  //   for (std::size_t fv=0; fv<free.size(); fv++) {
+  //     std::cout << fv << ": " << lower[fv] << " " << upper[fv] << "\n";
+  //   } 
   // }
 
-  // eliminate dimension // don't eliminate dimension
-  // std::vector<int> sums(mat[0].size()+1,1);
-  // for (std::size_t iter=0; iter<mat.size(); iter++) { // sum down over rows
-  //   for (std::size_t iter2=0; iter2<mat[0].size(); iter2++) { // add sum from columns
-  //     sums[iter2] -= mat[iter][iter2];
-  //   }
-  //   sums.back() += -mat[iter].back() - 1;
-  // }
-  // if we add up every row, we get (a+b+...) = sum(last row) - a_extra - b_extra - ...
-  // therefore we have, for a total number of buttons, a way to choose the requisite free variables
-
+  std::cout << "matrix\n";
+  for (auto r : mat) {
+    for (auto c : r) {
+      std::cout << c << " ";
+    }
+    std::cout << "\n";
+  }
+  std::cout << "Number of free variables: " << free.size() << "\n";
+  for (auto fs : free_sum) {
+    std::cout << fs << " ";
+  }
+  std::cout << "\n";
+  
+  
   // loop over all possible guesses, find minimum number of pushes
   std::size_t adjust = 0; // set to 1 if eliminating free variable, otherwise set to 0
   current = lower;
+  std::vector<int> count(free.size(),0);
   while (true) {
 
     // assign guesses to current
@@ -262,8 +323,10 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
       guesses[free[ind]] = current[ind];
     }
 
-    // update current by iterating through possibilities
+    // update current next loop by increasing count
     if (current.size()>0) current[0]+=1;
+
+    // validate current by checking inequalities, reording count to make it valid
     for (std::size_t ind=0; ind+1+adjust<current.size(); ind++) {
       if (current[ind]>upper[ind]) {
         current[ind] = lower[ind];
