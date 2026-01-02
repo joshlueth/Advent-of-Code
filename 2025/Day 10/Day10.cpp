@@ -62,7 +62,7 @@ bool check_pushing_buttons(const std::vector<std::size_t>& buttons, const std::v
   return (current==goal);
 }
 
-void rref(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& free, std::vector<std::size_t>& pivot) {
+void rref(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& free) {
   std::size_t col=0, row=0;
   while(row<mat.size()) {
     while (col<mat[0].size()-1) {
@@ -72,11 +72,7 @@ void rref(std::vector<std::vector<long long>>& mat, std::vector<std::size_t>& fr
         std::size_t irow=row+1;
         while (irow<mat.size()) {
           if (mat[irow][col]!=0) {
-            // found pivot, swap pivot indices
-            std::size_t swap_pivot = pivot[row];
-            pivot[row] = pivot[irow];
-            pivot[irow] = swap_pivot;
-            // swap row indices
+            // found pivot, swap row indices
             for (std::size_t icol=0; icol<mat[row].size(); icol++) {
               long long swap = mat[row][icol];
               mat[row][icol] = mat[irow][icol];
@@ -300,13 +296,13 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
   //   } 
   // }
 
-  // std::cout << "matrix\n";
-  // for (auto r : mat) {
-  //   for (auto c : r) {
-  //     std::cout << c << " ";
-  //   }
-  //   std::cout << "\n";
-  // }
+  std::cout << "matrix\n";
+  for (auto r : mat) {
+    for (auto c : r) {
+      std::cout << c << " ";
+    }
+    std::cout << "\n";
+  }
   // std::cout << "Number of free variables: " << free.size() << "\n";
   // std::cout << "free variables location:\n";
   // for (auto fv : free) {
@@ -342,12 +338,6 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
   std::vector<int> count(free.size(),0);
   while (true) {
 
-    // std::cout << "counting\n";
-    // for (auto c : count) {
-    //   std::cout << c << " ";
-    // }
-    // std::cout << "\n";
-
     bool done_guessing = false;
     if (count.size()>0) { // otherwise, simply select the correct result - no free variables
       // create current using count, lower, and upper
@@ -382,7 +372,6 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
             }
             // no valid guesses (only should occur for cur>0)
             if (low_ineq>up_ineq) {
-              // std::cout << "invalid guess: " << low_ineq << " " << up_ineq << "\n";
               valid_guess = false;
               count[cur-1] += 1;
               for (std::size_t cur_after=cur; cur_after<current.size(); cur_after++) {
@@ -392,8 +381,8 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
             }
           }
           // dimension reduction
+          // must update in order to deal with, e.g., 2 -3 -5
           if (cur==current.size()-adjust) {
-            // std::cout << "undergoing dimension reduction\n";
             if (free_sum.back()<=1) {
               current.back() = low_ineq;
             } else {
@@ -416,11 +405,8 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
             } else { // guess is not too high
               current[cur] = guess;
             }
-            // std::cout << "current for cur: " << cur << " " << current[cur] << "\n";
           }
         }
-        // std::cout << "should have guess at this point " << valid_guess << "\n";
-        // std::cout << "except: count.back()=" << count.back() << "\n";
         if (done_guessing) break;
       }
       if (done_guessing) break; // invalid guess, have iterated through everything
@@ -444,9 +430,6 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
 
     // the issue appears to be that we cannot simply choose based off of free_sum when, for example, 8 7 83 (bounds 0-11). Need a further criteria
     // this is essentially the "equality" rule
-
-    // what is my check for this? so we have jolts/pivot and jolts%pivot
-    // we must have the 
 
     // 740 vs 119
     // 477 vs 72
@@ -645,15 +628,11 @@ int main(int argc, char* argv[])
     }
 
     std::vector<std::size_t> free_var{};
-    std::vector<std::size_t> pivot(mat.size(),0);
-    for (std::size_t ii=0; ii<pivot.size(); ii++) {
-      pivot[ii] = ii;
-    }
-    rref(mat,free_var,pivot);
+    rref(mat,free_var);
 
     // std::cout << "Case " << Case << ": ";
 
-    // use pivot to set upper bound on free variables
+    // set upper bound on free variables
     int maxj = *std::max_element(jolts.begin(),jolts.end()); // max joltage overall
     std::vector<int> upper(free_var.size(),maxj);
     for (std::size_t fv=0; fv<free_var.size(); fv++) { // index denoting free variable
