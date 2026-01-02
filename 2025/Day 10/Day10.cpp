@@ -232,12 +232,13 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
   // then we can remove all rows with no relevant fv information
 
   std::vector<std::vector<long long>> inequalities {};
+  std::vector<std::size_t> becomes_single_inequality {};
   std::vector<double> free_sum(free.size());
   for (std::size_t rows=0; rows<mat.size(); rows++) {
     std::vector<long long> inequality_row(free.size()+1); // temporarily store row. Don't store permanently if number of non-zero values are 0 (meaningless) or 1 (single variable inequality, update bounds)
     int nonzero_counter=-1;
     std::size_t last_nonzero_loc=0, pivot_ind=0;
-    for (std::size_t cols=0; cols<mat[rows].size(); cols++) {
+    for (std::size_t cols=0; cols<mat[rows].size()-1; cols++) {
       long long local = mat[rows][cols];
       if (local!=0) {
         if (nonzero_counter==-1) {
@@ -248,7 +249,7 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
             if (free[fv]==cols) {
               inequality_row[fv] = local;
               nonzero_counter++;
-              free_sum[fv] += local/static_cast<double>(mat[rows][pivot_ind]);
+              free_sum[fv] += static_cast<double>(local)/static_cast<double>(mat[rows][pivot_ind]);
               last_nonzero_loc = fv;
             }
           }
@@ -269,12 +270,13 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
       // neg+neg -> lower bound
       else {
         if (inequality_row.back()<=0) {
-          lower[last_nonzero_loc] = std::max(lower[last_nonzero_loc],static_cast<int>(inequality_row.back()/inequality_row[last_nonzero_loc]));
+          lower[last_nonzero_loc] = std::max(lower[last_nonzero_loc],static_cast<int>(std::ceil(static_cast<double>(inequality_row.back())/static_cast<double>(inequality_row[last_nonzero_loc]))));
         }
       }
       // pos+neg||neg+pos should be impossible for a solution to actually exist
     } else { // multiple variable inequality; use recursion to make guesses that satisfy
       inequalities.push_back(inequality_row);
+      becomes_single_inequality.push_back(last_nonzero_loc);
     }
   }
   // should use recursion to make free variable guesses
@@ -298,47 +300,161 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
   //   } 
   // }
 
-  std::cout << "matrix\n";
-  for (auto r : mat) {
-    for (auto c : r) {
-      std::cout << c << " ";
-    }
-    std::cout << "\n";
-  }
-  std::cout << "Number of free variables: " << free.size() << "\n";
-  for (auto fs : free_sum) {
-    std::cout << fs << " ";
-  }
-  std::cout << "\n";
+  // std::cout << "matrix\n";
+  // for (auto r : mat) {
+  //   for (auto c : r) {
+  //     std::cout << c << " ";
+  //   }
+  //   std::cout << "\n";
+  // }
+  // std::cout << "Number of free variables: " << free.size() << "\n";
+  // std::cout << "free variables location:\n";
+  // for (auto fv : free) {
+  //   std::cout << fv << " ";
+  // }
+  // std::cout << "\n";
+  // std::cout << "free sum:\n";
+  // for (auto fs : free_sum) {
+  //   std::cout << fs << " ";
+  // }
+  // std::cout << "\n";
+  // std::cout << "lower: ";
+  // for (auto l : lower) {
+  //   std::cout << l << " ";
+  // }
+  // std::cout << "\n";
+  // std::cout << "upper: ";
+  // for (auto u : upper) {
+  //   std::cout << u << " ";
+  // }
+  // std::cout << "\n";
+  // std::cout << "inequalities:\n";
+  // for (auto in : inequalities) {
+  //   for (auto i : in) {
+  //     std::cout << i << " ";
+  //   }
+  //   std::cout << "\n";
+  // }
   
   
   // loop over all possible guesses, find minimum number of pushes
   std::size_t adjust = 0; // set to 1 if eliminating free variable, otherwise set to 0
-  current = lower;
   std::vector<int> count(free.size(),0);
   while (true) {
 
-    // assign guesses to current
-    for (std::size_t ind=0; ind<free.size(); ind++) {
-      guesses[free[ind]] = current[ind];
-    }
+    // std::cout << "counting\n";
+    // for (auto c : count) {
+    //   std::cout << c << " ";
+    // }
+    // std::cout << "\n";
 
-    // update current next loop by increasing count
-    if (current.size()>0) current[0]+=1;
-
-    // validate current by checking inequalities, reording count to make it valid
-    for (std::size_t ind=0; ind+1+adjust<current.size(); ind++) {
-      if (current[ind]>upper[ind]) {
-        current[ind] = lower[ind];
-        current[ind+1] +=1;
-      } else {
-        break;
+    bool done_guessing = false;
+    if (count.size()>0) { // otherwise, simply select the correct result - no free variables
+      // create current using count, lower, and upper
+      bool valid_guess = false;
+      while (!valid_guess) {
+        valid_guess = true;
+        // start with copy of current inequalities
+        std::vector<std::vector<long long>> local_inequalities {inequalities};
+        int low_ineq, up_ineq, guess;
+        for (std::size_t cur=0; cur<current.size(); cur++) {
+          // set local inequalities
+          low_ineq = lower[cur];
+          up_ineq = upper[cur];
+          // std::cout << "local ineq: " << low_ineq << " " << up_ineq << "\n";
+          // update local inequalities
+          if (cur!=0) { // skip update for first: already done previously
+            std::size_t set_i = cur-1; // update local_inequalities with previous guess
+            for (std::size_t i_num=0; i_num<local_inequalities.size(); i_num++) {
+              local_inequalities[i_num].back() -= local_inequalities[i_num][set_i]*current[set_i]; 
+              if (becomes_single_inequality[i_num]==cur) {
+                // update inequality values!
+                if (local_inequalities[i_num][cur]>0) {
+                  if (local_inequalities[i_num].back()>=0) {
+                    up_ineq = std::min(up_ineq,static_cast<int>(local_inequalities[i_num].back()/local_inequalities[i_num][cur]));
+                  }
+                } else {
+                  if (local_inequalities[i_num].back()<=0) {
+                    low_ineq = std::max(low_ineq,static_cast<int>(std::ceil(static_cast<double>(local_inequalities[i_num].back())/static_cast<double>(local_inequalities[i_num][cur]))));
+                  }
+                }
+              }
+            }
+            // no valid guesses (only should occur for cur>0)
+            if (low_ineq>up_ineq) {
+              // std::cout << "invalid guess: " << low_ineq << " " << up_ineq << "\n";
+              valid_guess = false;
+              count[cur-1] += 1;
+              for (std::size_t cur_after=cur; cur_after<current.size(); cur_after++) {
+                count[cur_after] = 0;
+              }
+              break;
+            }
+          }
+          // dimension reduction
+          if (cur==current.size()-adjust) {
+            // std::cout << "undergoing dimension reduction\n";
+            if (free_sum.back()<=1) {
+              current.back() = low_ineq;
+            } else {
+              current.back() = up_ineq;
+            }
+          } else { // otherwise make a guess
+            guess = low_ineq + count[cur];
+            if (guess>up_ineq) { // guess is too high, loop over
+              // loop over the innermost one first, then set it to zero and increment the next innermost one
+              if (cur==0) {
+                done_guessing = true;
+                break; // end loop when low_ineq + count[cur] is greater than up_ineq for cur=0
+              }
+              count[cur-1] += 1;
+              for (std::size_t cur_after=cur; cur_after<current.size(); cur_after++) {
+                count[cur_after] = 0;
+              }
+              valid_guess = false;
+              break;
+            } else { // guess is not too high
+              current[cur] = guess;
+            }
+            // std::cout << "current for cur: " << cur << " " << current[cur] << "\n";
+          }
+        }
+        // std::cout << "should have guess at this point " << valid_guess << "\n";
+        // std::cout << "except: count.back()=" << count.back() << "\n";
+        if (done_guessing) break;
+      }
+      if (done_guessing) break; // invalid guess, have iterated through everything
+      if (current.size()>adjust) {
+        count[count.size()-1-adjust] += 1; // update current next loop by increasing count
       }
     }
+    if (count.size()>adjust&&done_guessing) break;
+
+    // assign guesses to current
+    // std::cout << "guesses: ";
+    for (std::size_t ind=0; ind<free.size(); ind++) {
+      guesses[free[ind]] = current[ind];
+      // std::cout << current[ind] << " ";
+    }
+    // std::cout << "\n";
 
     // get number of pushes
     int this_pushes=0;
     this_pushes = backward_sub(mat,guesses);
+
+    // the issue appears to be that we cannot simply choose based off of free_sum when, for example, 8 7 83 (bounds 0-11). Need a further criteria
+    // this is essentially the "equality" rule
+
+    // what is my check for this? so we have jolts/pivot and jolts%pivot
+    // we must have the 
+
+    // 740 vs 119
+    // 477 vs 72
+    // 1118 vs 106
+    // 1144 vs 134
+    // 946 vs 103
+    // 1166 vs 125
+    // 930 vs 104
     
     if (this_pushes>=0) {
       total_pushes = std::min(total_pushes,this_pushes);
@@ -346,10 +462,9 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
 
     // if we only have one solution, we have solved it!
     if (current.size()<=adjust) break;
-    // otherwise, this represents the complete iteration over all possible solutions
-    else if (current[current.size()-1-adjust]>upper[current.size()-1-adjust]) break;
   }
 
+  // std::cout << "total pushes: " << total_pushes << "\n";
   return total_pushes;
 }
 
