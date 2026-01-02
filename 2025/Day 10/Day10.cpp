@@ -296,13 +296,13 @@ int num_pushes(std::vector<std::vector<long long>>& mat, std::vector<std::size_t
   //   } 
   // }
 
-  std::cout << "matrix\n";
-  for (auto r : mat) {
-    for (auto c : r) {
-      std::cout << c << " ";
-    }
-    std::cout << "\n";
-  }
+  // std::cout << "matrix\n";
+  // for (auto r : mat) {
+  //   for (auto c : r) {
+  //     std::cout << c << " ";
+  //   }
+  //   std::cout << "\n";
+  // }
   // std::cout << "Number of free variables: " << free.size() << "\n";
   // std::cout << "free variables location:\n";
   // for (auto fv : free) {
